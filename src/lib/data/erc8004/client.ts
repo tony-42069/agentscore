@@ -30,7 +30,7 @@ export const ERC8004_ADDRESSES = {
 export type ERC8004Network = "base" | "baseSepolia";
 
 // eslint-disable-next-line
-let clientCache: Record<string, unknown> = {};
+let clientCache: Record<string, any> = {};
 
 /**
  * Create viem client for Base
@@ -54,7 +54,7 @@ export function createERC8004Client(
     });
   }
 
-  return clientCache[cacheKey];
+  return clientCache[cacheKey] as PublicClient;
 }
 
 /**
