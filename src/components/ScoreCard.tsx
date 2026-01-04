@@ -2,6 +2,7 @@ import { Card } from "@/components/ui/card";
 import { ScoreGauge } from "./ScoreGauge";
 import { shortenAddress } from "@/lib/utils/addresses";
 import { getGradeColor } from "@/lib/utils/formatting";
+import Image from "next/image";
 
 interface ScoreCardProps {
   score: number;
@@ -26,9 +27,11 @@ export function ScoreCard({
         {/* Agent Info */}
         <div className="flex items-center gap-4">
           {imageUrl ? (
-            <img
+            <Image
               src={imageUrl}
               alt={name || "Agent"}
+              width={64}
+              height={64}
               className="w-16 h-16 rounded-full object-cover"
             />
           ) : (

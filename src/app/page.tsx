@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, useScroll, useTransform, useInView } from "framer-motion";
 import { ArrowRight, ArrowUpRight, Search } from "lucide-react";
@@ -8,18 +8,10 @@ import { ArrowRight, ArrowUpRight, Search } from "lucide-react";
 // Animation variants
 const fadeUp = {
   hidden: { opacity: 0, y: 40 },
-  visible: { 
-    opacity: 1, 
-    y: 0,
-    transition: { duration: 0.8, ease: [0.25, 0.4, 0.25, 1] }
-  }
-};
-
-const fadeIn = {
-  hidden: { opacity: 0 },
-  visible: { 
+  visible: {
     opacity: 1,
-    transition: { duration: 1, ease: [0.25, 0.4, 0.25, 1] }
+    y: 0,
+    transition: { duration: 0.8, ease: "easeOut" as const }
   }
 };
 
@@ -36,12 +28,71 @@ const staggerContainer = {
 
 const letterAnimation = {
   hidden: { opacity: 0, y: 50 },
-  visible: { 
-    opacity: 1, 
+  visible: {
+    opacity: 1,
     y: 0,
-    transition: { duration: 0.5, ease: [0.25, 0.4, 0.25, 1] }
+    transition: { duration: 0.5, ease: "easeOut" as const }
   }
 };
+
+// Floating data component
+function FloatingData() {
+  const dataStrings = [
+    "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D",
+    "score: 847 | grade: A+",
+    "tx_count: 15,847",
+    "volume: $2.4M",
+    "reputation: 98.7%",
+    "7Kz4KZmPGHjZqBhsLnVzKqT8vXMhKGt4dKcH5hE9jFmN",
+    "validation: PASSED",
+    "cross_chain: true",
+    "buyers: 1,247",
+    "active: 847 days",
+  ];
+
+  return (
+    <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+      {dataStrings.map((str, i) => (
+        <motion.div
+          key={i}
+          initial={{ y: "100vh", x: `${10 + (i * 8)}%`, opacity: 0 }}
+          animate={{ 
+            y: "-100vh", 
+            opacity: [0, 0.15, 0.15, 0],
+          }}
+          transition={{
+            duration: 20 + (i * 2),
+            repeat: Infinity,
+            delay: i * 3,
+            ease: "linear"
+          }}
+          className="absolute font-mono text-xs text-primary/20 whitespace-nowrap"
+          style={{ left: `${5 + (i * 9)}%` }}
+        >
+          {str}
+        </motion.div>
+      ))}
+    </div>
+  );
+}
+
+// Animated grid background
+function AnimatedGrid() {
+  return (
+    <div className="fixed inset-0 pointer-events-none z-0">
+      <div className="absolute inset-0 grid-bg opacity-50" />
+      <div 
+        className="absolute inset-0"
+        style={{
+          background: `
+            radial-gradient(ellipse 80% 50% at 20% 20%, hsl(237 91% 55% / 0.08) 0%, transparent 50%),
+            radial-gradient(ellipse 60% 40% at 80% 80%, hsl(270 80% 50% / 0.05) 0%, transparent 50%)
+          `
+        }}
+      />
+    </div>
+  );
+}
 
 export default function HomePage() {
   const containerRef = useRef(null);
@@ -52,12 +103,17 @@ export default function HomePage() {
 
   return (
     <main ref={containerRef} className="relative bg-background overflow-hidden">
+      {/* Background layers */}
+      <AnimatedGrid />
+      <FloatingData />
+      
       {/* Noise texture overlay */}
       <div className="noise" />
       
       {/* Ambient orbs */}
-      <div className="orb orb-gold w-[800px] h-[800px] -top-[400px] -right-[300px] animate-pulse-subtle" />
-      <div className="orb orb-warm w-[600px] h-[600px] top-[50%] -left-[300px] animate-pulse-subtle" style={{ animationDelay: '-4s' }} />
+      <div className="orb orb-blue w-[800px] h-[800px] -top-[400px] -right-[300px] animate-pulse-subtle" />
+      <div className="orb orb-purple w-[600px] h-[600px] top-[40%] -left-[300px] animate-pulse-subtle" style={{ animationDelay: '-4s' }} />
+      <div className="orb orb-cyan w-[400px] h-[400px] bottom-[20%] right-[10%] animate-pulse-subtle" style={{ animationDelay: '-8s' }} />
       
       {/* Header */}
       <Header />
@@ -66,7 +122,7 @@ export default function HomePage() {
       <Hero scrollProgress={scrollYProgress} />
       
       {/* Elegant divider */}
-      <div className="elegant-line max-w-4xl mx-auto" />
+      <div className="elegant-line max-w-4xl mx-auto relative z-10" />
       
       {/* Metrics */}
       <Metrics />
@@ -87,16 +143,28 @@ export default function HomePage() {
 }
 
 function Header() {
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 50);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   return (
     <motion.header 
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.8, delay: 0.2 }}
-      className="fixed top-0 left-0 right-0 z-50 backdrop-blur-md bg-background/60 border-b border-border/30"
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
+        scrolled 
+          ? 'backdrop-blur-xl bg-background/80 border-b border-border/50' 
+          : 'bg-transparent'
+      }`}
     >
       <div className="max-w-7xl mx-auto px-8 py-5 flex items-center justify-between">
         <a href="/" className="flex items-center gap-3 group">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shadow-lg shadow-primary/20">
             <span className="font-display text-sm text-primary-foreground font-semibold">A</span>
           </div>
           <span className="font-display text-lg tracking-wide">AgentScore</span>
@@ -133,7 +201,7 @@ function Hero({ scrollProgress }: { scrollProgress: any }) {
   const opacity = useTransform(scrollProgress, [0, 0.2], [1, 0]);
 
   return (
-    <section id="search" className="relative min-h-screen flex flex-col justify-center pt-32 pb-24 px-8">
+    <section id="search" className="relative min-h-screen flex flex-col justify-center pt-32 pb-24 px-8 z-10">
       <motion.div 
         style={{ y, opacity }}
         className="max-w-5xl mx-auto text-center"
@@ -159,7 +227,7 @@ function Hero({ scrollProgress }: { scrollProgress: any }) {
           <AnimatedText text="Bureau for" className="block text-muted-foreground/60" delay={0.3} />
           <motion.span 
             variants={letterAnimation}
-            className="block italic text-primary"
+            className="block italic text-primary glow-text"
           >
             AI Agents
           </motion.span>
@@ -190,7 +258,7 @@ function Hero({ scrollProgress }: { scrollProgress: any }) {
           <motion.div 
             animate={{ y: [0, 8, 0] }}
             transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-            className="w-px h-16 bg-gradient-to-b from-transparent via-muted-foreground/30 to-transparent"
+            className="w-px h-16 bg-gradient-to-b from-transparent via-primary/50 to-transparent"
           />
         </motion.div>
       </motion.div>
@@ -247,7 +315,9 @@ function SearchBox() {
       transition={{ duration: 0.8, delay: 1.4 }}
       className="max-w-2xl mx-auto"
     >
-      <div className={`premium-card rounded-2xl p-2 transition-all duration-500 ${focused ? 'ring-1 ring-primary/30' : ''}`}>
+      <div className={`premium-card rounded-2xl p-2 transition-all duration-500 ${
+        focused ? 'ring-2 ring-primary/40 shadow-lg shadow-primary/10' : ''
+      }`}>
         <div className="flex items-center gap-4">
           <div className="flex-1 flex items-center gap-4 px-6">
             <Search className="w-5 h-5 text-muted-foreground" />
@@ -315,7 +385,7 @@ function Metrics() {
   ];
 
   return (
-    <section ref={ref} className="py-32 px-8">
+    <section ref={ref} className="py-32 px-8 relative z-10 section-decorated">
       <div className="max-w-6xl mx-auto">
         <motion.div 
           variants={staggerContainer}
@@ -323,7 +393,7 @@ function Metrics() {
           animate={isInView ? "visible" : "hidden"}
           className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-4"
         >
-          {metrics.map((metric, i) => (
+          {metrics.map((metric) => (
             <motion.div 
               key={metric.label}
               variants={fadeUp}
@@ -372,15 +442,18 @@ function HowItWorks() {
   ];
 
   return (
-    <section id="methodology" ref={ref} className="py-32 px-8 relative">
-      <div className="max-w-6xl mx-auto">
+    <section id="methodology" ref={ref} className="py-32 px-8 relative z-10">
+      {/* Background decoration */}
+      <div className="absolute inset-0 dot-pattern opacity-30" />
+      
+      <div className="max-w-6xl mx-auto relative">
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.8 }}
           className="mb-20"
         >
-          <p className="text-sm tracking-[0.3em] uppercase text-muted-foreground mb-4 font-body">
+          <p className="text-sm tracking-[0.3em] uppercase text-primary mb-4 font-body">
             Methodology
           </p>
           <h2 className="font-display text-4xl md:text-6xl font-normal">
@@ -395,23 +468,22 @@ function HowItWorks() {
           animate={isInView ? "visible" : "hidden"}
           className="grid md:grid-cols-3 gap-8"
         >
-          {steps.map((step, i) => (
+          {steps.map((step) => (
             <motion.div
               key={step.number}
               variants={fadeUp}
-              whileHover={{ y: -8 }}
-              transition={{ duration: 0.3 }}
+              whileHover={{ y: -8, transition: { duration: 0.3 } }}
               className="premium-card rounded-2xl p-8 group"
             >
               <div className="flex items-start justify-between mb-8">
-                <span className="font-display text-5xl text-muted-foreground/20 group-hover:text-primary/30 transition-colors">
+                <span className="font-display text-5xl text-muted-foreground/20 group-hover:text-primary/40 transition-colors duration-500">
                   {step.number}
                 </span>
-                <span className="text-xs tracking-[0.2em] uppercase text-muted-foreground px-3 py-1 rounded-full border border-border">
+                <span className="text-xs tracking-[0.2em] uppercase text-primary/70 px-3 py-1 rounded-full border border-primary/30 bg-primary/5">
                   {step.protocol}
                 </span>
               </div>
-              <h3 className="font-display text-2xl mb-4">
+              <h3 className="font-display text-2xl mb-4 group-hover:text-primary transition-colors duration-500">
                 {step.title}
               </h3>
               <p className="font-body text-muted-foreground leading-relaxed">
@@ -440,15 +512,19 @@ function Scoring() {
   ];
 
   return (
-    <section id="scoring" ref={ref} className="py-32 px-8 bg-card/30 relative grain">
-      <div className="max-w-4xl mx-auto relative z-10">
+    <section id="scoring" ref={ref} className="py-32 px-8 relative z-10">
+      {/* Background */}
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-card/50 to-transparent" />
+      <div className="absolute inset-0 circuit-pattern opacity-30" />
+      
+      <div className="max-w-4xl mx-auto relative">
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.8 }}
           className="text-center mb-16"
         >
-          <p className="text-sm tracking-[0.3em] uppercase text-muted-foreground mb-4 font-body">
+          <p className="text-sm tracking-[0.3em] uppercase text-primary mb-4 font-body">
             Scoring Model
           </p>
           <h2 className="font-display text-4xl md:text-6xl font-normal mb-6">
@@ -472,19 +548,19 @@ function Scoring() {
               <motion.div
                 key={factor.name}
                 variants={fadeUp}
-                className="flex items-center justify-between py-4 border-b border-border/50 last:border-0"
+                className="flex items-center justify-between py-4 border-b border-border/50 last:border-0 group"
               >
-                <span className="font-body text-foreground">{factor.name}</span>
+                <span className="font-body text-foreground group-hover:text-primary transition-colors">{factor.name}</span>
                 <div className="flex items-center gap-4">
                   <div className="w-32 h-1.5 bg-secondary rounded-full overflow-hidden">
                     <motion.div
                       initial={{ width: 0 }}
                       animate={isInView ? { width: `${factor.weight * 3.7}%` } : {}}
-                      transition={{ duration: 1, delay: 0.5 + i * 0.1, ease: [0.25, 0.4, 0.25, 1] }}
-                      className="h-full bg-gradient-to-r from-primary to-primary/60 rounded-full"
+                      transition={{ duration: 1, delay: 0.5 + i * 0.1, ease: "easeOut" as const }}
+                      className="h-full bg-gradient-to-r from-primary to-primary/60 rounded-full shadow-sm shadow-primary/50"
                     />
                   </div>
-                  <span className="font-display text-lg w-12 text-right tabular-nums text-muted-foreground">
+                  <span className="font-display text-lg w-12 text-right tabular-nums text-muted-foreground group-hover:text-primary transition-colors">
                     {factor.weight}%
                   </span>
                 </div>
@@ -517,7 +593,7 @@ function CallToAction() {
   const isInView = useInView(ref, { once: true, margin: "-100px" });
 
   return (
-    <section ref={ref} className="py-32 px-8">
+    <section ref={ref} className="py-32 px-8 relative z-10 section-decorated">
       <motion.div
         initial={{ opacity: 0, y: 40 }}
         animate={isInView ? { opacity: 1, y: 0 } : {}}
@@ -559,12 +635,12 @@ function CallToAction() {
 
 function Footer() {
   return (
-    <footer className="border-t border-border/30 py-16 px-8">
+    <footer className="border-t border-border/30 py-16 px-8 relative z-10">
       <div className="max-w-6xl mx-auto">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
           <div>
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shadow-lg shadow-primary/20">
                 <span className="font-display text-sm text-primary-foreground font-semibold">A</span>
               </div>
               <span className="font-display text-lg">AgentScore</span>
@@ -579,7 +655,7 @@ function Footer() {
               href="https://eips.ethereum.org/EIPS/eip-8004" 
               target="_blank" 
               rel="noopener noreferrer"
-              className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1 link-underline"
+              className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 link-underline"
             >
               ERC-8004
               <ArrowUpRight className="w-3 h-3" />
@@ -588,7 +664,7 @@ function Footer() {
               href="https://x402scan.com" 
               target="_blank" 
               rel="noopener noreferrer"
-              className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1 link-underline"
+              className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 link-underline"
             >
               x402scan
               <ArrowUpRight className="w-3 h-3" />
@@ -597,7 +673,7 @@ function Footer() {
               href="https://github.com/tony-42069/agentscore" 
               target="_blank" 
               rel="noopener noreferrer"
-              className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1 link-underline"
+              className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 link-underline"
             >
               GitHub
               <ArrowUpRight className="w-3 h-3" />
