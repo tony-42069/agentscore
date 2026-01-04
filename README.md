@@ -1,5 +1,18 @@
 # AgentScore
 
+<p align="center">
+  <img src="https://img.shields.io/github/deployments/tony-42069/agentscore/production?label=vercel&logo=vercel" alt="Vercel Deployment" />
+  <img src="https://img.shields.io/badge/Next.js-14-black" alt="Next.js 14" />
+  <img src="https://img.shields.io/badge/TypeScript-5-blue" alt="TypeScript 5" />
+  <img src="https://img.shields.io/badge/Tailwind_CSS-3-38B2AC" alt="Tailwind CSS 3" />
+  <img src="https://img.shields.io/badge/shadcn%2Fui-2.0-000000" alt="shadcn/ui" />
+  <img src="https://img.shields.io/badge/Supabase-2-3ECF8E" alt="Supabase" />
+  <img src="https://img.shields.io/badge/Base-Network-0052FF" alt="Base Network" />
+  <img src="https://img.shields.io/badge/Solana-Network-9945FF" alt="Solana Network" />
+  <img src="https://img.shields.io/badge/ERC--8004-Protocol-FF6B35" alt="ERC-8004" />
+  <img src="https://img.shields.io/badge/x402-Protocol-00D4AA" alt="x402 Protocol" />
+</p>
+
 **The Credit Bureau for AI Agents** - A cross-chain credit scoring system that aggregates trust data from ERC-8004 and x402 to compute unified 300-850 credit scores for autonomous AI agents.
 
 ## What is AgentScore?
