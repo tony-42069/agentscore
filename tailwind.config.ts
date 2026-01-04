@@ -1,14 +1,32 @@
 import type { Config } from "tailwindcss";
+const { fontFamily } = require("tailwindcss/defaultTheme");
 
 const config: Config = {
   darkMode: ["class"],
+  // UPDATED CONTENT PATHS: Checks both ./src/ and ./ (root) folders
   content: [
-    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/**/*.{ts,tsx}",
+    "./app/**/*.{ts,tsx}",
+    "./components/**/*.{ts,tsx}",
+    "./pages/**/*.{ts,tsx}",
   ],
   theme: {
+    container: {
+      center: true,
+      padding: "2rem",
+      screens: {
+        "2xl": "1400px",
+      },
+    },
     extend: {
+      // 1. FONTS: Re-adding these so your text looks correct
+      fontFamily: {
+        display: ["'Instrument Serif'", "'Cormorant Garamond'", ...fontFamily.serif],
+        serif: ["'Cormorant Garamond'", ...fontFamily.serif],
+        body: ["'DM Sans'", ...fontFamily.sans],
+        mono: ["'JetBrains Mono'", ...fontFamily.mono],
+      },
+      // 2. COLORS
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -55,6 +73,28 @@ const config: Config = {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+      },
+      // 3. ANIMATIONS: Re-adding these for the orbs/glow effects
+      animation: {
+        "pulse-subtle": "pulse-subtle 8s ease-in-out infinite",
+        "blob-float": "blob-float 25s ease-in-out infinite",
+        "shimmer": "shimmer 8s ease-in-out infinite",
+      },
+      keyframes: {
+        "pulse-subtle": {
+          "0%, 100%": { opacity: "0.12" },
+          "50%": { opacity: "0.2" },
+        },
+        "blob-float": {
+          "0%, 100%": { transform: "translate(0, 0) scale(1)" },
+          "25%": { transform: "translate(50px, -50px) scale(1.1)" },
+          "50%": { transform: "translate(-30px, 30px) scale(0.9)" },
+          "75%": { transform: "translate(-50px, -30px) scale(1.05)" },
+        },
+        shimmer: {
+          "0%": { backgroundPosition: "200% 0" },
+          "100%": { backgroundPosition: "-200% 0" },
+        },
       },
     },
   },
