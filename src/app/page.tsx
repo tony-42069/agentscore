@@ -2,8 +2,43 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { motion, useScroll, useTransform, useInView } from "framer-motion";
 import { ArrowRight, ArrowUpRight, Search } from "lucide-react";
+
+// Hook for recent searches
+function useRecentSearches() {
+  const [searches, setSearches] = useState<string[]>([]);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    const saved = localStorage.getItem('agentScore_recentSearches');
+    if (saved) {
+      try {
+        setSearches(JSON.parse(saved));
+      } catch (e) {
+        console.error('Failed to parse recent searches');
+      }
+    }
+  }, []);
+
+  const addSearch = (address: string) => {
+    setSearches(prev => {
+      const filtered = prev.filter(s => s.toLowerCase() !== address.toLowerCase());
+      const updated = [address, ...filtered].slice(0, 5);
+      localStorage.setItem('agentScore_recentSearches', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const clearSearches = () => {
+    setSearches([]);
+    localStorage.removeItem('agentScore_recentSearches');
+  };
+
+  return { searches, addSearch, clearSearches, mounted };
+}
 
 // Animation variants
 const fadeUp = {
@@ -135,6 +170,9 @@ export default function HomePage() {
       
       {/* CTA */}
       <CallToAction />
+
+      {/* API Promo */}
+      <APIPromo />
       
       {/* Footer */}
       <Footer />
@@ -164,9 +202,13 @@ function Header() {
     >
       <div className="max-w-7xl mx-auto px-8 py-5 flex items-center justify-between">
         <a href="/" className="flex items-center gap-3 group">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shadow-lg shadow-primary/20">
-            <span className="font-display text-sm text-primary-foreground font-semibold">A</span>
-          </div>
+          <Image 
+            src="/agentscore-logo.png" 
+            alt="AgentScore" 
+            width={32} 
+            height={32} 
+            className="rounded-lg shadow-lg shadow-primary/20"
+          />
           <span className="font-display text-lg tracking-wide">AgentScore</span>
         </a>
         
@@ -248,6 +290,9 @@ function Hero({ scrollProgress }: { scrollProgress: any }) {
         {/* Search */}
         <SearchBox />
 
+        {/* Sample Addresses */}
+        <SampleAddresses />
+
         {/* Scroll indicator */}
         <motion.div 
           initial={{ opacity: 0 }}
@@ -263,6 +308,49 @@ function Hero({ scrollProgress }: { scrollProgress: any }) {
         </motion.div>
       </motion.div>
     </section>
+  );
+}
+
+function SampleAddresses() {
+  const samples = [
+    { 
+      label: "Example Base Agent", 
+      address: "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D",
+      chain: "base" as const
+    },
+    { 
+      label: "Example Solana Agent", 
+      address: "7Kz4KZmPGHjZqBhsLnVzKqT8vXMhKGt4dKcH5hE9jFmN",
+      chain: "solana" as const
+    },
+  ];
+
+  const router = useRouter();
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ delay: 2 }}
+      className="mt-8"
+    >
+      <p className="text-xs text-muted-foreground mb-3 text-center">Try with a sample address</p>
+      <div className="flex flex-wrap items-center justify-center gap-3">
+        {samples.map((sample) => (
+          <motion.button
+            key={sample.address}
+            onClick={() => router.push(`/agent/${sample.address}`)}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/50 hover:bg-secondary border border-border/50 text-sm transition-colors group"
+          >
+            <span className={`w-2 h-2 rounded-full ${sample.chain === 'base' ? 'bg-blue-400' : 'bg-purple-400'}`} />
+            <span className="text-muted-foreground group-hover:text-foreground">{sample.label}</span>
+            <ArrowRight className="w-3 h-3 text-muted-foreground group-hover:text-primary transition-colors" />
+          </motion.button>
+        ))}
+      </div>
+    </motion.div>
   );
 }
 
@@ -286,13 +374,71 @@ function AnimatedText({ text, className = "", delay = 0 }: { text: string; class
   );
 }
 
+function RecentSearches({ 
+  searches, 
+  onSelect, 
+  onClear 
+}: { 
+  searches: string[]; 
+  onSelect: (address: string) => void;
+  onClear: () => void;
+}) {
+  if (searches.length === 0) return null;
+
+  const getChainIcon = (address: string) => {
+    if (address.startsWith("0x")) {
+      return <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />;
+    }
+    return <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />;
+  };
+
+  const truncate = (addr: string) => {
+    if (addr.length <= 16) return addr;
+    return `${addr.slice(0, 8)}...${addr.slice(-6)}`;
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="mt-4 pt-4 border-t border-border/30"
+    >
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-xs text-muted-foreground">Recent searches</span>
+        <button 
+          onClick={onClear}
+          className="text-xs text-muted-foreground hover:text-destructive transition-colors"
+        >
+          Clear
+        </button>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {searches.map((address) => (
+          <motion.button
+            key={address}
+            onClick={() => onSelect(address)}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary/30 hover:bg-secondary text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {getChainIcon(address)}
+            <span>{truncate(address)}</span>
+          </motion.button>
+        ))}
+      </div>
+    </motion.div>
+  );
+}
+
 function SearchBox() {
   const [address, setAddress] = useState("");
   const [error, setError] = useState("");
   const [focused, setFocused] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const { searches, addSearch, clearSearches, mounted } = useRecentSearches();
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
     const trimmed = address.trim();
     if (!trimmed) {
       setError("Please enter an address");
@@ -305,7 +451,15 @@ function SearchBox() {
       return;
     }
     setError("");
+    setIsLoading(true);
+    addSearch(trimmed);
     router.push(`/agent/${trimmed}`);
+  };
+
+  const handleSelectRecent = (addr: string) => {
+    setAddress(addr);
+    addSearch(addr);
+    router.push(`/agent/${addr}`);
   };
 
   return (
@@ -334,14 +488,33 @@ function SearchBox() {
           </div>
           <motion.button
             onClick={handleSearch}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className="luxe-button rounded-xl flex items-center gap-3"
+            disabled={isLoading}
+            whileHover={{ scale: isLoading ? 1 : 1.02 }}
+            whileTap={{ scale: isLoading ? 1 : 0.98 }}
+            className="luxe-button rounded-xl flex items-center gap-3 disabled:opacity-70"
           >
-            <span>Search</span>
-            <ArrowRight className="w-4 h-4" />
+            {isLoading ? (
+              <>
+                <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                <span>Loading...</span>
+              </>
+            ) : (
+              <>
+                <span>Search</span>
+                <ArrowRight className="w-4 h-4" />
+              </>
+            )}
           </motion.button>
         </div>
+        
+        {/* Recent Searches */}
+        {mounted && (
+          <RecentSearches 
+            searches={searches} 
+            onSelect={handleSelectRecent}
+            onClear={clearSearches}
+          />
+        )}
       </div>
       
       {error && (
@@ -633,6 +806,90 @@ function CallToAction() {
   );
 }
 
+function APIPromo() {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "-100px" });
+
+  const features = [
+    "Real-time score lookups",
+    "Full credit reports",
+    "Batch processing",
+    "Webhook notifications"
+  ];
+
+  return (
+    <section ref={ref} className="py-32 px-8 relative z-10 overflow-hidden">
+      {/* Background gradient */}
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/5 to-transparent" />
+      
+      <div className="max-w-5xl mx-auto relative">
+        <motion.div
+          initial={{ opacity: 0, y: 40 }}
+          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.8 }}
+          className="premium-card rounded-3xl p-8 md:p-12 relative overflow-hidden"
+        >
+          {/* Decorative elements */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-primary/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
+          
+          <div className="relative grid md:grid-cols-2 gap-12 items-center">
+            <div>
+              <p className="text-sm tracking-[0.3em] uppercase text-primary mb-4 font-body">
+                For Developers
+              </p>
+              <h2 className="font-display text-3xl md:text-4xl font-normal mb-4">
+                Build with our <span className="italic text-primary">API</span>
+              </h2>
+              <p className="font-body text-muted-foreground mb-8 leading-relaxed">
+                Integrate AgentScore into your application or protocol. Query agent scores, 
+                get full credit reports, and receive webhook notifications when scores change.
+              </p>
+              <div className="flex flex-wrap gap-4">
+                <motion.a
+                  href="/docs"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="luxe-button rounded-full flex items-center gap-2"
+                >
+                  <span>View Documentation</span>
+                  <ArrowRight className="w-4 h-4" />
+                </motion.a>
+                <a
+                  href="https://github.com/tony-42069/agentscore"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="outline-button rounded-full flex items-center gap-2"
+                >
+                  <span>GitHub</span>
+                  <ArrowUpRight className="w-4 h-4" />
+                </a>
+              </div>
+            </div>
+            
+            <div className="space-y-4">
+              {features.map((feature, i) => (
+                <motion.div
+                  key={feature}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={isInView ? { opacity: 1, x: 0 } : {}}
+                  transition={{ delay: 0.2 + i * 0.1 }}
+                  className="flex items-center gap-4 p-4 rounded-xl bg-secondary/30 border border-border/30"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <div className="w-2 h-2 rounded-full bg-primary" />
+                  </div>
+                  <span className="font-body text-foreground">{feature}</span>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
 function Footer() {
   return (
     <footer className="border-t border-border/30 py-16 px-8 relative z-10">
@@ -640,9 +897,13 @@ function Footer() {
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
           <div>
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shadow-lg shadow-primary/20">
-                <span className="font-display text-sm text-primary-foreground font-semibold">A</span>
-              </div>
+              <Image 
+                src="/agentscore-logo.png" 
+                alt="AgentScore" 
+                width={32} 
+                height={32} 
+                className="rounded-lg shadow-lg shadow-primary/20"
+              />
               <span className="font-display text-lg">AgentScore</span>
             </div>
             <p className="text-sm text-muted-foreground font-body">
