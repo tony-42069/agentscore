@@ -7,7 +7,8 @@ export interface ValidationStatus {
   validatorAddress: string;
   agentId: number;
   response: number; // 0-100, where 0 = failed, 100 = passed
-  tag: string;
+  responseHash: string; // Added: bytes32 response hash
+  tag: string;          // Now returned as string (not bytes32)
   lastUpdate: Date;
 }
 
@@ -16,14 +17,11 @@ export interface ValidationSummary {
   averageResponse: number;
 }
 
-const ZERO_BYTES32 =
-  "0x0000000000000000000000000000000000000000000000000000000000000000" as `0x${string}`;
-
 export class ValidationRegistryReader {
   private client: PublicClient;
   private contractAddress: `0x${string}`;
 
-  constructor(client: PublicClient, network: ERC8004Network = "base") {
+  constructor(client: PublicClient, network: ERC8004Network = "sepolia") {
     this.client = client;
     this.contractAddress = getContractAddresses(network).validationRegistry;
   }
@@ -37,8 +35,6 @@ export class ValidationRegistryReader {
     tag: string = ""
   ): Promise<ValidationSummary> {
     try {
-      const tagBytes = tag ? this.stringToBytes32(tag) : ZERO_BYTES32;
-
       const result = await this.client.readContract({
         address: this.contractAddress,
         abi: VALIDATION_REGISTRY_ABI,
@@ -46,11 +42,11 @@ export class ValidationRegistryReader {
         args: [
           BigInt(agentId),
           validatorAddresses as `0x${string}`[],
-          tagBytes,
+          tag, // Now string instead of bytes32
         ],
       });
 
-      const [count, avgResponse] = result as [bigint, number];
+      const [count, avgResponse] = result as readonly [bigint, number];
 
       return {
         count: Number(count),
@@ -88,6 +84,8 @@ export class ValidationRegistryReader {
 
   /**
    * Get status of a specific validation
+   * 
+   * Updated for new ABI: returns (validatorAddress, agentId, response, responseHash, tag, lastUpdate)
    */
   async getValidationStatus(
     requestHash: string
@@ -100,15 +98,17 @@ export class ValidationRegistryReader {
         args: [requestHash as `0x${string}`],
       });
 
-      const [validatorAddress, agentId, response, tag, lastUpdate] =
-        result as [string, bigint, number, string, bigint];
+      // New format: [validatorAddress, agentId, response, responseHash, tag, lastUpdate]
+      const [validatorAddress, agentId, response, responseHash, tag, lastUpdate] =
+        result as readonly [`0x${string}`, bigint, number, `0x${string}`, string, bigint];
 
       return {
         requestHash,
         validatorAddress,
         agentId: Number(agentId),
         response,
-        tag: this.bytes32ToString(tag),
+        responseHash,
+        tag: tag || "",
         lastUpdate: new Date(Number(lastUpdate) * 1000),
       };
     } catch (error) {
@@ -158,18 +158,24 @@ export class ValidationRegistryReader {
     };
   }
 
-  // Helper functions
-  private stringToBytes32(str: string): `0x${string}` {
-    const hex = Buffer.from(str).toString("hex").padEnd(64, "0");
-    return `0x${hex}` as `0x${string}`;
-  }
-
-  private bytes32ToString(bytes32: string): string {
-    if (!bytes32 || bytes32 === ZERO_BYTES32) {
-      return "";
+  /**
+   * Get all validation requests for a specific validator
+   */
+  async getValidatorRequests(validatorAddress: string): Promise<string[]> {
+    try {
+      const hashes = await this.client.readContract({
+        address: this.contractAddress,
+        abi: VALIDATION_REGISTRY_ABI,
+        functionName: "getValidatorRequests",
+        args: [validatorAddress as `0x${string}`],
+      });
+      return hashes as string[];
+    } catch (error) {
+      console.warn(
+        `Failed to get validator requests for ${validatorAddress}:`,
+        error
+      );
+      return [];
     }
-    const hex = bytes32.slice(2);
-    const str = Buffer.from(hex, "hex").toString("utf8");
-    return str.replace(/\0/g, "");
   }
 }

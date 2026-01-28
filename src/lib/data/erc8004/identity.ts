@@ -1,6 +1,7 @@
 import { type PublicClient } from "viem";
 import { IDENTITY_REGISTRY_ABI } from "./abis";
 import { getContractAddresses, type ERC8004Network } from "./client";
+import { findAgentByWallet as findAgentByWalletSubgraph } from "./indexer";
 
 export interface AgentRegistration {
   agentId: number;
@@ -14,7 +15,15 @@ export interface AgentRegistrationData {
   name: string;
   description: string;
   image: string;
-  endpoints: Array<{
+  // Support both old and new format
+  services?: Array<{
+    name: string;
+    endpoint: string;
+    type?: string;
+    version?: string;
+  }>;
+  // Backwards compatibility
+  endpoints?: Array<{
     name: string;
     endpoint: string;
     version?: string;
@@ -26,13 +35,23 @@ export interface AgentRegistrationData {
   supportedTrust?: string[];
 }
 
+// Internal type for processing service/endpoint items
+interface ServiceItem {
+  name: string;
+  endpoint: string;
+  type?: string;
+  version?: string;
+}
+
 export class IdentityRegistryReader {
   private client: PublicClient;
   private contractAddress: `0x${string}`;
+  private network: ERC8004Network;
 
   constructor(client: PublicClient, network: ERC8004Network = "base") {
     this.client = client;
     this.contractAddress = getContractAddresses(network).identityRegistry;
+    this.network = network;
   }
 
   /**
@@ -133,6 +152,7 @@ export class IdentityRegistryReader {
 
   /**
    * Extract wallet addresses from registration data
+   * Supports both "endpoints" (old) and "services" (new) formats
    */
   extractWallets(registration: AgentRegistration): {
     base?: string;
@@ -140,13 +160,23 @@ export class IdentityRegistryReader {
   } {
     const wallets: { base?: string; solana?: string } = {};
 
-    if (!registration.registrationData?.endpoints) {
+    // Get the service list, preferring "services" over "endpoints" for new format
+    const services: ServiceItem[] | undefined =
+      registration.registrationData?.services ??
+      registration.registrationData?.endpoints;
+
+    if (!services) {
       return wallets;
     }
 
-    for (const endpoint of registration.registrationData.endpoints) {
-      if (endpoint.name === "agentWallet") {
-        const addr = endpoint.endpoint;
+    for (const service of services) {
+      // Check for "agentWallet" or "wallet" service name, or "wallet" type
+      if (
+        service.name === "agentWallet" ||
+        service.name === "wallet" ||
+        ("type" in service && service.type === "wallet")
+      ) {
+        const addr = service.endpoint;
 
         // Parse CAIP-10 format: namespace:chainId:address
         if (addr.startsWith("eip155:8453:")) {
@@ -154,6 +184,12 @@ export class IdentityRegistryReader {
         } else if (addr.startsWith("eip155:84532:")) {
           // Base Sepolia
           wallets.base = addr.replace("eip155:84532:", "");
+        } else if (addr.startsWith("eip155:1:")) {
+          // Ethereum Mainnet
+          wallets.base = addr.replace("eip155:1:", "");
+        } else if (addr.startsWith("eip155:11155111:")) {
+          // Sepolia
+          wallets.base = addr.replace("eip155:11155111:", "");
         } else if (addr.startsWith("solana:")) {
           wallets.solana = addr.replace("solana:", "");
         } else if (addr.startsWith("0x")) {
@@ -185,15 +221,18 @@ export class IdentityRegistryReader {
   }
 
   /**
-   * Find agent by wallet address
-   * NOTE: This is a placeholder - production should use an indexer
+   * Find agent by wallet address using the subgraph
+   * 
+   * @param walletAddress - The wallet address to search for
+   * @returns The agent ID or null if not found
    */
   async findAgentByWallet(walletAddress: string): Promise<number | null> {
-    // This would require an indexer or subgraph in production
-    // For now, return null to indicate no ERC-8004 registration found
-    console.warn(
-      "findAgentByWallet requires indexing implementation - returning null"
-    );
-    return null;
+    try {
+      const agentId = await findAgentByWalletSubgraph(walletAddress, this.network);
+      return agentId;
+    } catch (error) {
+      console.warn("Error finding agent by wallet:", error);
+      return null;
+    }
   }
 }
