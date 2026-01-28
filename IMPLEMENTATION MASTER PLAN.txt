@@ -1,0 +1,1266 @@
+# AgentScore Completion Swarm - Master Orchestration Plan
+## 🚨 ERC-8004 MAINNET LAUNCH EDITION (UPDATED)
+
+## 📋 Project Context
+**Repository**: https://github.com/tony-42069/agentscore
+**Project**: AgentScore - Credit Bureau for AI Agents
+**Status**: Post-audit, preparing for ERC-8004 Mainnet Launch
+**Audit Score**: 68/100 - PARTIAL production readiness
+**Mainnet Launch**: Thursday 9 AM ET (THIS WEEK!)
+
+---
+
+## 🎯 Master Goal
+Complete AgentScore to production-ready state BEFORE mainnet launch by:
+1. Integrating with official ERC-8004 contracts (testnet now, mainnet Thursday)
+2. Updating for `value`/`valueDecimals` format (breaking change)
+3. Implementing x402 data pipeline with CDP API
+4. Adding comprehensive testing and security hardening
+
+---
+
+## 🔥 CRITICAL UPDATES FROM ERC-8004 TEAM (JANUARY 2026)
+
+### Breaking Changes (Must Handle Before Mainnet)
+| Change | Impact | Action Required |
+|--------|--------|-----------------|
+| `score` → `value`/`valueDecimals` | **CRITICAL** | Update all reputation reading logic |
+| `endpoints` → `services` | **MEDIUM** | Update registration file parser |
+| 9 Standardized Tags | **HIGH** | Scoring algorithm can use rich reputation data |
+| Mainnet Launch Thursday 9 AM ET | **CRITICAL** | Have production deployment ready |
+| Contracts Live on Testnet | **HIGH** | Can test integration NOW |
+
+### New Official Resources
+| Resource | URL | Purpose |
+|----------|-----|---------|
+| Official Contracts | https://github.com/erc-8004/erc-8004-contracts | ABIs and deployment info |
+| Registration Guide | https://github.com/erc-8004/best-practices/blob/main/Registration.md | "services" format |
+| Reputation Guide | https://github.com/erc-8004/best-practices/blob/main/Reputation.md | value/valueDecimals format |
+| Updated Spec | https://eips.ethereum.org/EIPS/eip-8004 | Official ERC-8004 spec |
+| Agent0 SDK | https://github.com/agent0lab/agent0-ts | Reference implementation (v1.4.0) |
+| Subgraph | https://github.com/agent0lab/subgraph | Indexer for agent lookup |
+
+### The New `value`/`valueDecimals` Format
+Old format (your current code):
+```typescript
+// ❌ OLD - score is uint8 (0-100)
+interface FeedbackEntry {
+  score: number;  // 0-100
+}
+```
+
+New format (must update):
+```typescript
+// ✅ NEW - value is int128 with decimals
+interface FeedbackEntry {
+  value: bigint;           // Raw value (can be negative!)
+  valueDecimals: number;   // 0-18 decimal places
+  // Computed: humanReadableValue = value / 10^valueDecimals
+}
+
+// Examples:
+// Star rating: value=87, valueDecimals=0 → 87
+// Uptime %: value=9977, valueDecimals=2 → 99.77%
+// Downvote: value=-1, valueDecimals=0 → -1
+// Revenue: value=556000, valueDecimals=0 → $556,000
+```
+
+### 9 Standardized Tag1 Values
+| Tag1 | Type | Use Case |
+|------|------|----------|
+| `starred` | 0-100 | Quality rating |
+| `reachable` | Binary (0/1) | Service availability |
+| `ownerVerified` | Binary (0/1) | Identity verification |
+| `uptime` | Percentage | Service uptime (99.77%) |
+| `successRate` | Percentage | Request success rate |
+| `responseTime` | Milliseconds | API response time |
+| `blocktimeFreshness` | Blocks | Data freshness |
+| `revenues` | USD | Total revenue from x402 |
+| `tradingYield` | Percentage | Trading performance (can be negative!) |
+
+---
+
+## 🗓️ REVISED TIMELINE (MAINNET LAUNCH WEEK)
+
+### THIS WEEK (Pre-Mainnet)
+```
+MONDAY-TUESDAY (Days 1-2):
+├── Sub-Agent 1.1 REVISED: Contract Addresses & ABIs
+│   ├── Clone github.com/erc-8004/erc-8004-contracts
+│   ├── Extract updated ABIs (value/valueDecimals!)
+│   ├── Get Base Sepolia addresses
+│   └── Update abis.ts
+│
+├── Sub-Agent 1.2 REVISED: Value Parser & Identity
+│   ├── Create value-parser.ts (parseValue/formatValue)
+│   ├── Update FeedbackEntry interface
+│   ├── Implement findAgentByWallet() with subgraph
+│   └── Update identity.ts (endpoints → services)
+│
+└── Sub-Agent 1.3 REVISED: Integration Tests
+    ├── Test against REAL Base Sepolia contracts
+    ├── Test value/valueDecimals format
+    └── Test all 9 standard tags
+
+WEDNESDAY (Day 3):
+├── Final integration testing
+├── Code review and bug fixes
+└── Prepare production deployment
+
+THURSDAY 9 AM ET (MAINNET LAUNCH! 🚀):
+├── Get Base Mainnet contract addresses
+├── Update production environment
+├── Deploy to production
+└── Monitor and validate
+
+FRIDAY:
+├── Bug fixes if needed
+└── Begin Phase 2 (Hardening)
+```
+
+### NEXT WEEKS (Post-Mainnet)
+```
+WEEK 2: Phase 2 - Hardening
+├── Agent 4: Rate limiting, auth, security
+├── Agent 5: Performance, caching, jobs
+└── Agent 6: TypeScript strict, DRY cleanup
+
+WEEK 3: Phase 3 - Polish
+├── Agent 7: Documentation
+└── Integration and E2E testing
+```
+
+---
+
+## 🏗️ UPDATED ARCHITECTURE
+
+### ERC-8004 Data Flow (UPDATED)
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    ERC-8004 REGISTRIES                          │
+│  ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐   │
+│  │ Identity        │ │ Reputation      │ │ Validation      │   │
+│  │ Registry        │ │ Registry        │ │ Registry        │   │
+│  │                 │ │ (NEW FORMAT!)   │ │                 │   │
+│  │ tokenURI()      │ │ value/          │ │ getValidation() │   │
+│  │ getMetadata()   │ │ valueDecimals   │ │                 │   │
+│  └────────┬────────┘ └────────┬────────┘ └─────────────────┘   │
+│           │                   │                                   │
+│           │                   ▼                                   │
+│           │          ┌─────────────────┐                        │
+│           │          │ Value Parser    │                        │
+│           │          │ (NEW!)          │                        │
+│           │          │ parseValue()    │                        │
+│           │          └────────┬────────┘                        │
+│           │                   │                                   │
+│           ▼                   ▼                                   │
+│  ┌──────────────────────────────────────────────┐              │
+│  │ Agent Data Aggregator                        │              │
+│  │ • Identity (services, not endpoints!)        │              │
+│  │ • Reputation (by tag: starred, uptime, etc.) │              │
+│  │ • Validation (passed/failed)                 │              │
+│  └──────────────────────┬───────────────────────┘              │
+└─────────────────────────┼──────────────────────────────────────┘
+                          │
+                          ▼
+              ┌─────────────────────┐
+              │ Scoring Engine      │
+              │ • 7 weighted factors│
+              │ • Tag-based rep     │
+              └─────────────────────┘
+```
+
+---
+
+## 👥 UPDATED AGENT SWARM DEFINITIONS
+
+### AGENT 1: 🔧 ERC-8004 Integration Specialist (CRITICAL PATH)
+**Owner**: Agent 1 (spawn sub-agents as needed)
+**Focus**: Contract integration, updated ABIs, value/valueDecimals format
+**Critical Path**: YES - blocks mainnet readiness
+**Deadline**: Wednesday (before mainnet launch)
+
+---
+
+#### Sub-Agent 1.1 REVISED: Contract Addresses & ABI Researcher
+**Task**: Get official ABIs and testnet addresses from official repo
+**Branch**: `phase-1/agent1/contract-addresses-revised`
+**Deadline**: Monday EOD
+
+```markdown
+# Sub-Agent 1.1 REVISED: ERC-8004 Contract Addresses & ABIs
+
+## Objective
+Get real ERC-8004 contract addresses AND updated ABIs from official sources.
+
+## Official Sources
+- Contracts repo: https://github.com/erc-8004/erc-8004-contracts
+- Testnet status: LIVE NOW (Base Sepolia)
+- Mainnet status: Launching Thursday 9 AM ET
+
+## Tasks
+
+### 1. Clone Official Repo
+```bash
+git clone https://github.com/erc-8004/erc-8004-contracts.git
+cd erc-8004-contracts
+```
+
+### 2. Extract Updated ABIs (CRITICAL!)
+Files to extract:
+- `IdentityRegistry.json` - Should be mostly unchanged
+- `ReputationRegistry.json` - ⚠️ **MAJOR CHANGES** (value/valueDecimals!)
+- `ValidationRegistry.json` - Likely unchanged
+
+Key ABI changes for ReputationRegistry:
+- OLD: `giveFeedback(..., uint8 score, ...)`
+- NEW: `giveFeedback(..., int128 value, uint8 valueDecimals, ...)`
+- OLD: `getSummary(...) returns (uint64 count, uint8 averageScore)`
+- NEW: `getSummary(...) returns (uint64 count, int128 averageValue, uint8 valueDecimals)`
+
+### 3. Get Base Sepolia Addresses
+From repo or from 8004scan.io:
+- IdentityRegistry: `0x...?`
+- ReputationRegistry: `0x...?`
+- ValidationRegistry: `0x...?`
+
+### 4. Update AgentScore ABIs
+File: `src/lib/data/erc8004/abis.ts`
+
+Update IDENTITY_REGISTRY_ABI:
+- Check for any changes (likely minimal)
+
+Update REPUTATION_REGISTRY_ABI:
+```typescript
+// BEFORE (your current code):
+{
+  name: "giveFeedback",
+  inputs: [
+    { name: "agentId", type: "uint256" },
+    { name: "score", type: "uint8" },  // ❌ OLD
+    // ...
+  ]
+}
+
+// AFTER (must update):
+{
+  name: "giveFeedback",
+  inputs: [
+    { name: "agentId", type: "uint256" },
+    { name: "value", type: "int128" },        // ✅ NEW
+    { name: "valueDecimals", type: "uint8" }, // ✅ NEW
+    // ...
+  ]
+}
+```
+
+Update VALIDATION_REGISTRY_ABI:
+- Check for changes (likely minimal)
+
+### 5. Update Contract Addresses
+File: `src/lib/data/erc8004/client.ts`
+
+Update ERC8004_ADDRESSES:
+```typescript
+export const ERC8004_ADDRESSES = {
+  baseSepolia: {
+    identityRegistry: "0x...",     // Get from repo
+    reputationRegistry: "0x...",   // Get from repo
+    validationRegistry: "0x...",   // Get from repo
+  },
+  base: {
+    // Mainnet addresses - update Thursday 9 AM ET!
+    identityRegistry: process.env.ERC8004_IDENTITY_REGISTRY || "0x0000...",
+    reputationRegistry: process.env.ERC8004_REPUTATION_REGISTRY || "0x0000...",
+    validationRegistry: process.env.ERC8004_VALIDATION_REGISTRY || "0x0000...",
+  },
+} as const;
+```
+
+### 6. Add Address Validation
+Add function to validate addresses are configured:
+```typescript
+export function validateContractAddresses(network: ERC8004Network = "base") {
+  const addresses = ERC8004_ADDRESSES[network];
+  const zeroAddress = "0x0000000000000000000000000000000000000000";
+  
+  if (
+    addresses.identityRegistry === zeroAddress ||
+    addresses.reputationRegistry === zeroAddress ||
+    addresses.validationRegistry === zeroAddress
+  ) {
+    throw new Error(
+      `ERC-8004 contract addresses not configured for ${network}. ` +
+      `Please set environment variables or update client.ts`
+    );
+  }
+}
+```
+
+## Commit
+```
+feat(erc8004): add official contract ABIs and testnet addresses
+
+- Cloned erc-8004-contracts repo for official ABIs
+- Updated ReputationRegistry ABI for value/valueDecimals format
+- Extracted Base Sepolia contract addresses
+- Added address validation to prevent zero-address usage
+- Prepared for mainnet address update on Thursday
+
+Closes: task-1.1-revised
+```
+
+## Definition of Done
+- [ ] Official contracts repo cloned and ABIs extracted
+- [ ] ReputationRegistry ABI updated for value/valueDecimals
+- [ ] Base Sepolia addresses added to client.ts
+- [ ] Address validation function implemented
+- [ ] Commit created and pushed
+```
+
+---
+
+#### Sub-Agent 1.2 REVISED: Value Parser & Identity Lookup
+**Task**: Implement value/valueDecimals parsing and findAgentByWallet()
+**Branch**: `phase-1/agent1/identity-lookup-revised`
+**Deadline**: Tuesday
+**Depends on**: 1.1 REVISED
+
+```markdown
+# Sub-Agent 1.2 REVISED: Value Parser & Identity Lookup
+
+## Objective
+1. Implement value/valueDecimals parsing utilities (NEW!)
+2. Update reputation reading for new format (BREAKING CHANGE!)
+3. Implement findAgentByWallet() using subgraph
+4. Update identity parsing (endpoints → services)
+
+## Part 1: Value Parser Utilities (NEW FILE)
+
+File: `src/lib/data/erc8004/value-parser.ts`
+
+```typescript
+/**
+ * Parse value/valueDecimals to human-readable number
+ * 
+ * @param value - The raw value (can be negative!)
+ * @param valueDecimals - Number of decimal places (0-18)
+ * @returns Human-readable number
+ * 
+ * Examples:
+ * - parseValue(87n, 0) → 87 (star rating)
+ * - parseValue(9977n, 2) → 99.77 (uptime %)
+ * - parseValue(-32n, 1) → -3.2 (trading yield %)
+ * - parseValue(556000n, 0) → 556000 (revenue USD)
+ */
+export function parseValue(value: bigint, valueDecimals: number): number {
+  if (valueDecimals === 0) {
+    return Number(value);
+  }
+  return Number(value) / Math.pow(10, valueDecimals);
+}
+
+/**
+ * Format human-readable number to value/valueDecimals
+ */
+export function formatValue(
+  num: number,
+  decimals: number
+): { value: bigint; valueDecimals: number } {
+  const multiplier = Math.pow(10, decimals);
+  const value = BigInt(Math.round(num * multiplier));
+  return { value, valueDecimals: decimals };
+}
+
+/**
+ * Parse feedback entry to human-readable format
+ */
+export function parseFeedbackEntry(entry: {
+  value: bigint;
+  valueDecimals: number;
+  tag1: string;
+}): {
+  humanReadableValue: number;
+  displayValue: string;
+  unit: string;
+} {
+  const humanReadableValue = parseValue(entry.value, entry.valueDecimals);
+  
+  // Format based on tag type
+  switch (entry.tag1) {
+    case 'uptime':
+    case 'successRate':
+    case 'tradingYield':
+      return {
+        humanReadableValue,
+        displayValue: `${humanReadableValue.toFixed(2)}%`,
+        unit: 'percent',
+      };
+    case 'revenues':
+      return {
+        humanReadableValue,
+        displayValue: `$${humanReadableValue.toLocaleString()}`,
+        unit: 'usd',
+      };
+    case 'responseTime':
+      return {
+        humanReadableValue,
+        displayValue: `${Math.round(humanReadableValue)}ms`,
+        unit: 'milliseconds',
+      };
+    case 'blocktimeFreshness':
+      return {
+        humanReadableValue,
+        displayValue: `${Math.round(humanReadableValue)} blocks`,
+        unit: 'blocks',
+      };
+    case 'starred':
+    default:
+      return {
+        humanReadableValue,
+        displayValue: humanReadableValue.toFixed(1),
+        unit: 'score',
+      };
+  }
+}
+```
+
+## Part 2: Update Reputation Reading
+
+File: `src/lib/data/erc8004/reputation.ts`
+
+Update FeedbackEntry interface:
+```typescript
+export interface FeedbackEntry {
+  clientAddress: string;
+  value: bigint;           // ❌ Was: score: number
+  valueDecimals: number;   // ✅ NEW FIELD
+  tag1: string;
+  tag2: string;
+  isRevoked: boolean;
+  
+  // Computed properties (added after fetching)
+  humanReadableValue?: number;
+  displayValue?: string;
+  unit?: string;
+}
+```
+
+Update getAllFeedback():
+```typescript
+async getAllFeedback(
+  agentId: number,
+  clientAddresses: string[] = [],
+  includeRevoked: boolean = false
+): Promise<FeedbackEntry[]> {
+  const result = await this.client.readContract({
+    address: this.contractAddress,
+    abi: REPUTATION_REGISTRY_ABI,
+    functionName: "readAllFeedback",
+    args: [
+      BigInt(agentId),
+      clientAddresses as `0x${string}`[],
+      ZERO_BYTES32,
+      ZERO_BYTES32,
+      includeRevoked,
+    ],
+  });
+
+  const [clients, values, valueDecimals, tag1s, tag2s, revokedStatuses] = result as [
+    string[],
+    bigint[],      // ❌ Was: number[]
+    number[],      // ✅ NEW
+    string[],
+    string[],
+    boolean[]
+  ];
+
+  return clients.map((client, i) => {
+    const entry: FeedbackEntry = {
+      clientAddress: client,
+      value: values[i],
+      valueDecimals: valueDecimals[i],
+      tag1: this.bytes32ToString(tag1s[i]),
+      tag2: this.bytes32ToString(tag2s[i]),
+      isRevoked: revokedStatuses[i],
+    };
+    
+    // Add human-readable computed properties
+    const parsed = parseFeedbackEntry(entry);
+    entry.humanReadableValue = parsed.humanReadableValue;
+    entry.displayValue = parsed.displayValue;
+    entry.unit = parsed.unit;
+    
+    return entry;
+  });
+}
+```
+
+Add tag-based aggregation:
+```typescript
+export async function getReputationByTag(
+  agentId: number,
+  tag1: string
+): Promise<{
+  averageValue: number;
+  count: number;
+  entries: FeedbackEntry[];
+}> {
+  const allFeedback = await this.getAllFeedback(agentId);
+  const filtered = allFeedback.filter(
+    (f) => f.tag1.toLowerCase() === tag1.toLowerCase() && !f.isRevoked
+  );
+  
+  if (filtered.length === 0) {
+    return { averageValue: 0, count: 0, entries: [] };
+  }
+  
+  const sum = filtered.reduce((acc, f) => acc + (f.humanReadableValue || 0), 0);
+  
+  return {
+    averageValue: sum / filtered.length,
+    count: filtered.length,
+    entries: filtered,
+  };
+}
+
+// Get all reputation metrics organized by tag
+export async function getReputationMetrics(agentId: number): Promise<{
+  starred: { average: number; count: number };
+  uptime: { average: number; count: number };
+  successRate: { average: number; count: number };
+  revenues: { total: number; count: number };
+  tradingYield: { average: number; count: number };
+  totalFeedbackCount: number;
+}> {
+  const [
+    starred,
+    uptime,
+    successRate,
+    revenues,
+    tradingYield,
+    allFeedback,
+  ] = await Promise.all([
+    this.getReputationByTag(agentId, 'starred'),
+    this.getReputationByTag(agentId, 'uptime'),
+    this.getReputationByTag(agentId, 'successRate'),
+    this.getReputationByTag(agentId, 'revenues'),
+    this.getReputationByTag(agentId, 'tradingYield'),
+    this.getAllFeedback(agentId),
+  ]);
+  
+  return {
+    starred: { average: starred.averageValue, count: starred.count },
+    uptime: { average: uptime.averageValue, count: uptime.count },
+    successRate: { average: successRate.averageValue, count: successRate.count },
+    revenues: { total: revenues.entries.reduce((a, e) => a + (e.humanReadableValue || 0), 0), count: revenues.count },
+    tradingYield: { average: tradingYield.averageValue, count: tradingYield.count },
+    totalFeedbackCount: allFeedback.filter(f => !f.isRevoked).length,
+  };
+}
+```
+
+## Part 3: Implement Identity Lookup
+
+Use the official subgraph for agent lookup:
+
+File: `src/lib/data/erc8004/indexer.ts`
+
+```typescript
+import { request, gql } from 'graphql-request';
+
+const SUBGRAPH_URL = {
+  baseSepolia: 'https://api.studio.thegraph.com/query/.../agent0-base-sepolia/v1.4.0',
+  base: 'https://api.studio.thegraph.com/query/.../agent0-base/v1.4.0', // After mainnet
+};
+
+export async function findAgentByWallet(
+  walletAddress: string,
+  network: 'base' | 'baseSepolia' = 'base'
+): Promise<number | null> {
+  const query = gql`
+    query FindAgentByWallet($wallet: String!) {
+      agents(where: { owner: $wallet }) {
+        id
+        agentId
+      }
+    }
+  `;
+  
+  try {
+    const data = await request(SUBGRAPH_URL[network], query, {
+      wallet: walletAddress.toLowerCase(),
+    });
+    
+    if (data.agents && data.agents.length > 0) {
+      return parseInt(data.agents[0].agentId);
+    }
+    return null;
+  } catch (error) {
+    console.warn('Subgraph query failed:', error);
+    return null;
+  }
+}
+```
+
+Update identity.ts:
+```typescript
+async findAgentByWallet(walletAddress: string): Promise<number | null> {
+  return findAgentByWallet(walletAddress, this.network);
+}
+```
+
+## Part 4: Update Registration Parsing
+
+File: `src/lib/data/erc8004/identity.ts`
+
+Update `extractWallets()` to handle new `services` format:
+
+```typescript
+extractWallets(registration: AgentRegistration): {
+  base?: string;
+  solana?: string;
+} {
+  const wallets: { base?: string; solana?: string } = {};
+  
+  // Support both old "endpoints" and new "services" format
+  const services = registration.registrationData?.services || 
+                   registration.registrationData?.endpoints || [];
+  
+  for (const service of services) {
+    if (service.name === 'agentWallet' || service.type === 'wallet') {
+      const addr = service.endpoint;
+      
+      // Parse CAIP-10 format
+      if (addr.startsWith('eip155:8453:')) {
+        wallets.base = addr.replace('eip155:8453:', '');
+      } else if (addr.startsWith('eip155:84532:')) {
+        wallets.base = addr.replace('eip155:84532:', '');
+      } else if (addr.startsWith('solana:')) {
+        wallets.solana = addr.replace('solana:', '');
+      } else if (addr.startsWith('0x')) {
+        wallets.base = addr;
+      } else if (addr.length >= 32 && addr.length <= 44) {
+        wallets.solana = addr;
+      }
+    }
+  }
+  
+  return wallets;
+}
+```
+
+## Commit
+```
+feat(erc8004): implement value parser and identity lookup
+
+- Added value-parser.ts with parseValue/formatValue utilities
+- Updated FeedbackEntry interface for value/valueDecimals
+- Added humanReadableValue computed properties
+- Implemented tag-based reputation aggregation
+- Added findAgentByWallet() using official subgraph
+- Updated identity parsing for "services" format
+- Added support for all 9 standardized tag1 values
+
+Closes: task-1.2-revised
+```
+
+## Definition of Done
+- [ ] value-parser.ts created with parse/format functions
+- [ ] Reputation reading updated for new format
+- [ ] Tag-based aggregation working
+- [ ] findAgentByWallet() implemented with subgraph
+- [ ] Identity parsing handles "services" format
+- [ ] Commit created and pushed
+```
+
+---
+
+#### Sub-Agent 1.3 REVISED: Registry Integration Tests
+**Task**: Test all registry integrations against REAL Base Sepolia contracts
+**Branch**: `phase-1/agent1/registry-tests-revised`
+**Deadline**: Tuesday/Wednesday
+**Depends on**: 1.1 REVISED, 1.2 REVISED
+
+```markdown
+# Sub-Agent 1.3 REVISED: ERC-8004 Registry Integration Tests
+
+## Objective
+Test all registry integrations against REAL contracts on Base Sepolia.
+
+## Test Environment
+- Network: Base Sepolia
+- Contracts: Real deployed ERC-8004 contracts (live now!)
+- RPC: Your BASE_RPC_URL should point to Base Sepolia
+
+## Test Requirements
+
+### 1. Identity Registry Tests
+```typescript
+describe('IdentityRegistry', () => {
+  it('can get agent registration by ID', async () => {
+    // Use a known testnet agent ID
+    const agentId = 1;
+    const registration = await identityReader.getRegistrationData(agentId);
+    expect(registration.agentId).toBe(agentId);
+    expect(registration.owner).toBeDefined();
+    expect(registration.tokenUri).toBeDefined();
+  });
+  
+  it('can parse agent metadata', async () => {
+    const agentId = 1;
+    const registration = await identityReader.getRegistrationData(agentId);
+    expect(registration.registrationData).toBeDefined();
+    expect(registration.registrationData?.name).toBeDefined();
+    // Check for "services" or "endpoints" format
+  });
+  
+  it('can extract wallets from registration', async () => {
+    const agentId = 1;
+    const registration = await identityReader.getRegistrationData(agentId);
+    const wallets = identityReader.extractWallets(registration);
+    // May or may not have wallets defined
+    if (wallets.base) {
+      expect(wallets.base).toMatch(/^0x[a-fA-F0-9]{40}$/);
+    }
+  });
+  
+  it('can find agent by wallet address', async () => {
+    // Use a known agent owner address
+    const knownOwner = '0x...'; // Replace with real address
+    const agentId = await identityReader.findAgentByWallet(knownOwner);
+    expect(agentId).toBeGreaterThan(0);
+  });
+});
+```
+
+### 2. Reputation Registry Tests (NEW FORMAT!)
+```typescript
+describe('ReputationRegistry', () => {
+  it('can get reputation summary', async () => {
+    const agentId = 1;
+    const summary = await reputationReader.getSummary(agentId);
+    expect(summary.count).toBeGreaterThanOrEqual(0);
+    // NEW: Check for value/valueDecimals in summary
+  });
+  
+  it('can get feedback with value/valueDecimals format', async () => {
+    const agentId = 1;
+    const feedback = await reputationReader.getAllFeedback(agentId);
+    
+    if (feedback.length > 0) {
+      const entry = feedback[0];
+      expect(entry.value).toBeDefined();
+      expect(entry.valueDecimals).toBeDefined();
+      expect(entry.humanReadableValue).toBeDefined();
+    }
+  });
+  
+  it('parses star ratings correctly', async () => {
+    // Look for feedback with tag1='starred'
+    const agentId = 1;
+    const starred = await reputationReader.getReputationByTag(agentId, 'starred');
+    
+    if (starred.count > 0) {
+      expect(starred.averageValue).toBeGreaterThanOrEqual(0);
+      expect(starred.averageValue).toBeLessThanOrEqual(100);
+    }
+  });
+  
+  it('parses uptime percentages correctly', async () => {
+    const agentId = 1;
+    const uptime = await reputationReader.getReputationByTag(agentId, 'uptime');
+    
+    if (uptime.count > 0) {
+      // Uptime should be around 99.XX%
+      expect(uptime.averageValue).toBeGreaterThan(0);
+      expect(uptime.averageValue).toBeLessThanOrEqual(100);
+      
+      // Check individual entries have correct decimals
+      const entry = uptime.entries[0];
+      expect(entry.humanReadableValue).toBeCloseTo(
+        Number(entry.value) / Math.pow(10, entry.valueDecimals),
+        2
+      );
+    }
+  });
+  
+  it('handles negative values (trading yield)', async () => {
+    const agentId = 1;
+    const yield = await reputationReader.getReputationByTag(agentId, 'tradingYield');
+    
+    if (yield.count > 0) {
+      // Trading yield can be negative
+      const hasNegative = yield.entries.some(e => e.value < 0);
+      // Just verify we can handle negative values
+      expect(yield.averageValue).toBeDefined();
+    }
+  });
+  
+  it('can get all reputation metrics', async () => {
+    const agentId = 1;
+    const metrics = await reputationReader.getReputationMetrics(agentId);
+    
+    expect(metrics.totalFeedbackCount).toBeGreaterThanOrEqual(0);
+    expect(metrics.starred).toBeDefined();
+    expect(metrics.uptime).toBeDefined();
+    expect(metrics.revenues).toBeDefined();
+  });
+  
+  it('respects revoked feedback', async () => {
+    const agentId = 1;
+    const allFeedback = await reputationReader.getAllFeedback(agentId, [], true);
+    const activeFeedback = await reputationReader.getAllFeedback(agentId, [], false);
+    
+    expect(activeFeedback.length).toBeLessThanOrEqual(allFeedback.length);
+  });
+});
+```
+
+### 3. Validation Registry Tests
+```typescript
+describe('ValidationRegistry', () => {
+  it('can get validation summary', async () => {
+    const agentId = 1;
+    const summary = await validationReader.getSummary(agentId);
+    expect(summary.count).toBeGreaterThanOrEqual(0);
+  });
+  
+  it('can get all validations for agent', async () => {
+    const agentId = 1;
+    const validations = await validationReader.getAllValidations(agentId);
+    
+    for (const v of validations) {
+      expect(v.requestHash).toBeDefined();
+      expect(v.validatorAddress).toBeDefined();
+      expect(v.response).toBeGreaterThanOrEqual(0);
+      expect(v.response).toBeLessThanOrEqual(100);
+    }
+  });
+});
+```
+
+### 4. End-to-End Integration Test
+```typescript
+describe('ERC-8004 Integration', () => {
+  it('full flow: find agent → get identity → get reputation → get validation', async () => {
+    // Start with a known wallet address
+    const walletAddress = '0x...'; // Use real testnet address
+    
+    // 1. Find agent by wallet
+    const agentId = await identityReader.findAgentByWallet(walletAddress);
+    expect(agentId).toBeTruthy();
+    if (!agentId) return;
+    
+    // 2. Get identity
+    const identity = await identityReader.getRegistrationData(agentId);
+    expect(identity.agentId).toBe(agentId);
+    
+    // 3. Get reputation (NEW FORMAT!)
+    const reputation = await reputationReader.getReputationMetrics(agentId);
+    expect(reputation.totalFeedbackCount).toBeGreaterThanOrEqual(0);
+    
+    // 4. Get validation
+    const validation = await validationReader.getValidationForScoring(agentId);
+    expect(validation.totalValidations).toBeGreaterThanOrEqual(0);
+  });
+});
+```
+
+## Test Configuration
+
+File: `.env.test`
+```
+# Test environment - Base Sepolia
+BASE_RPC_URL=https://base-sepolia.g.alchemy.com/v2/YOUR_KEY
+NEXT_PUBLIC_SUPABASE_URL=...
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+SUPABASE_SERVICE_ROLE_KEY=...
+```
+
+## Running Tests
+```bash
+# Run only ERC-8004 integration tests
+npm test src/lib/data/erc8004/__tests__
+
+# Run with coverage
+npm run test:coverage src/lib/data/erc8004/__tests__
+```
+
+## Commit
+```
+test(erc8004): add integration tests against Base Sepolia contracts
+
+- Added IdentityRegistry tests
+- Added ReputationRegistry tests for value/valueDecimals format
+- Tested all 9 standardized tag1 values
+- Tested positive, decimal, and negative values
+- Added ValidationRegistry tests
+- Added end-to-end integration test
+- All tests passing against real Base Sepolia contracts
+
+Closes: task-1.3-revised
+```
+
+## Definition of Done
+- [ ] All three registries have integration tests
+- [ ] Tests run against real Base Sepolia contracts
+- [ ] value/valueDecimals format tested
+- [ ] All 9 standard tags tested
+- [ ] End-to-end flow tested
+- [ ] All tests passing
+- [ ] Commit created and pushed
+```
+
+---
+
+### AGENT 2: 💰 x402 Data Pipeline Engineer
+**Owner**: Agent 2 (spawn sub-agents as needed)
+**Focus**: CDP API, payment detection, transaction aggregation
+**Critical Path**: NO (can launch without, but needed for full functionality)
+**Timeline**: Week 2 (after mainnet launch)
+
+*Note: Agent 2 sub-agents (2.1, 2.2, 2.3) remain largely unchanged from original plan. See original IMPLEMENTATION MASTER PLAN for details.*
+
+---
+
+### AGENT 3: 🧪 Testing & Quality Assurance Lead
+**Owner**: Agent 3 (spawn sub-agents as needed)
+**Focus**: Test framework, unit tests, integration tests, CI/CD
+**Critical Path**: NO (but blocks production confidence)
+**Timeline**: Week 1 (3.1), Week 2-3 (3.2, 3.3)
+
+#### Sub-Agent 3.1: Test Framework Setup
+**Task**: Set up Jest/Vitest testing framework
+**Branch**: `phase-1/agent3/test-framework`
+**Deadline**: Monday/Tuesday (parallel with Agent 1)
+**Status**: UNCHANGED from original plan
+
+#### Sub-Agent 3.2 REVISED: Scoring Algorithm Tests
+**Task**: Write comprehensive tests for scoring factors (UPDATED for new reputation format)
+**Branch**: `phase-1/agent3/scoring-tests-revised`
+**Deadline**: Week 2
+**Depends on**: Agent 1 completion (for new reputation format)
+
+```markdown
+# Sub-Agent 3.2 REVISED: Scoring Factor Tests
+
+## Objective
+Achieve 100% test coverage for the scoring algorithm with updated reputation format.
+
+## IMPORTANT: Updated for value/valueDecimals
+
+The reputation factor now uses the new format. Update tests accordingly:
+
+```typescript
+describe('calculateReputationScore (UPDATED)', () => {
+  it('calculates score from starred ratings', () => {
+    const agent = createMockAgentData({
+      reputationByTag: {
+        starred: { averageValue: 87, count: 10 },
+        uptime: { averageValue: 0, count: 0 },
+        successRate: { averageValue: 0, count: 0 },
+      },
+      totalFeedbackCount: 10,
+    });
+    
+    const result = calculateReputationScore(agent, []);
+    expect(result.score).toBeGreaterThan(0);
+  });
+  
+  it('weights uptime and success rate', () => {
+    const agent = createMockAgentData({
+      reputationByTag: {
+        starred: { averageValue: 80, count: 5 },
+        uptime: { averageValue: 99.5, count: 3 },
+        successRate: { averageValue: 95, count: 3 },
+      },
+      totalFeedbackCount: 11,
+    });
+    
+    const result = calculateReputationScore(agent, []);
+    // Should weight: starred(40%), uptime(30%), successRate(30%)
+    // = 80*0.4 + 99.5*0.3 + 95*0.3 = 32 + 29.85 + 28.5 = 90.35
+    expect(result.score).toBeGreaterThan(80);
+  });
+  
+  it('handles decimal values correctly', () => {
+    const agent = createMockAgentData({
+      reputationByTag: {
+        uptime: { averageValue: 99.77, count: 1 },
+      },
+      totalFeedbackCount: 1,
+    });
+    
+    const result = calculateReputationScore(agent, []);
+    expect(result.details.uptime).toBe(99.77);
+  });
+  
+  it('handles negative trading yield', () => {
+    const agent = createMockAgentData({
+      reputationByTag: {
+        tradingYield: { averageValue: -3.2, count: 1 },
+      },
+      totalFeedbackCount: 1,
+    });
+    
+    const result = calculateReputationScore(agent, []);
+    // Negative yield should reduce score
+    expect(result.score).toBeLessThan(50);
+    expect(result.reasonCodes).toContain('NEGATIVE_TRADING_YIELD');
+  });
+});
+```
+
+## Coverage Target
+- Statements: 100%
+- Branches: 100%
+- Functions: 100%
+- Lines: 100%
+
+## Commit
+```
+test(scoring): add comprehensive tests for updated scoring algorithm
+
+- Added tests for new reputation format (value/valueDecimals)
+- Tested tag-based reputation weighting
+- Added tests for decimal values
+- Added tests for negative trading yields
+- Achieved 100% code coverage
+
+Closes: task-3.2-revised
+```
+```
+
+#### Sub-Agent 3.3: API Endpoint Tests
+**Task**: Write tests for API routes
+**Branch**: `phase-2/agent3/api-tests`
+**Deadline**: Week 2-3
+**Status**: UNCHANGED from original plan
+
+---
+
+### AGENT 4: 🛡️ Security & API Hardening Specialist
+**Owner**: Agent 4 (spawn sub-agents as needed)
+**Focus**: Rate limiting, authentication, input validation
+**Critical Path**: NO (can launch without, but needed for production)
+**Timeline**: Week 2 (post-mainnet)
+
+*Note: All Agent 4 sub-agents (4.1, 4.2, 4.3) remain unchanged from original plan.*
+
+---
+
+### AGENT 5: 🗄️ Database & Performance Optimizer
+**Owner**: Agent 5 (spawn sub-agents as needed)
+**Focus**: Query optimization, caching, background jobs
+**Critical Path**: NO
+**Timeline**: Week 2-3 (post-mainnet)
+
+*Note: All Agent 5 sub-agents (5.1, 5.2, 5.3) remain unchanged from original plan.*
+
+---
+
+### AGENT 6: 🔍 Code Quality & Refactoring Expert
+**Owner**: Agent 6 (spawn sub-agents as needed)
+**Focus**: Type safety, DRY principle, code cleanup
+**Critical Path**: NO
+**Timeline**: Week 2-3 (post-mainnet)
+
+*Note: All Agent 6 sub-agents (6.1, 6.2) remain unchanged from original plan.*
+
+---
+
+### AGENT 7: 📚 Documentation & DevOps Engineer
+**Owner**: Agent 7 (spawn sub-agents as needed)
+**Focus**: Documentation, deployment guides, monitoring
+**Critical Path**: NO
+**Timeline**: Week 3 (post-mainnet)
+
+*Note: All Agent 7 sub-agents (7.1, 7.2) remain unchanged from original plan.*
+
+---
+
+## 📊 PHASE SUMMARY & DEPENDENCIES (REVISED)
+
+### Phase 1: Foundation (Pre-Mainnet Launch)
+**Goal**: Get core ERC-8004 integration working with new format
+**Deadline**: Wednesday (before Thursday mainnet launch)
+
+| Sub-Agent | Task | Dependencies | Est. Hours | Deadline |
+|-----------|------|--------------|------------|----------|
+| 1.1 REVISED | Contract Addresses & ABIs | None | 4 | Monday |
+| 1.2 REVISED | Value Parser & Identity | 1.1 | 8 | Tuesday |
+| 1.3 REVISED | Integration Tests | 1.1, 1.2 | 8 | Wednesday |
+| 3.1 | Test Framework | None | 4 | Monday |
+
+**Phase 1 Exit Criteria**:
+- [ ] Official ABIs extracted and updated
+- [ ] Base Sepolia addresses configured
+- [ ] value/valueDecimals parsing working
+- [ ] findAgentByWallet() functional
+- [ ] Integration tests passing against real contracts
+- [ ] Ready for mainnet launch
+
+---
+
+### Phase 2: Hardening (Week 2)
+**Goal**: Production-ready security and performance
+**Timeline**: Week 2 (post-mainnet)
+
+| Sub-Agent | Task | Dependencies | Est. Hours |
+|-----------|------|--------------|------------|
+| 2.1 | CDP API Client | Phase 1 | 8 |
+| 2.2 | Hybrid Data Source | 2.1 | 8 |
+| 2.3 | Transaction Parser | 2.2 | 8 |
+| 3.2 REVISED | Scoring Tests (new format) | Phase 1 | 8 |
+| 3.3 | API Tests | 3.1, 3.2 | 8 |
+| 4.1 | Rate Limiting | None | 6 |
+| 4.2 | API Key Auth | 4.1 | 6 |
+| 4.3 | Input Validation | 4.2 | 4 |
+| 5.1 | Query Optimization | None | 6 |
+| 5.2 | Redis Caching | 5.1 | 6 |
+| 5.3 | Background Jobs | 5.2 | 6 |
+| 6.1 | TypeScript Strict | None | 6 |
+| 6.2 | Code Consolidation | 6.1 | 4 |
+
+**Phase 2 Exit Criteria**:
+- [ ] x402 data pipeline operational
+- [ ] Rate limiting on all endpoints
+- [ ] API key authentication working
+- [ ] Redis caching operational
+- [ ] All tests passing
+- [ ] TypeScript strict mode enabled
+
+---
+
+### Phase 3: Polish (Week 3)
+**Goal**: Documentation and final testing
+**Timeline**: Week 3
+
+| Sub-Agent | Task | Dependencies | Est. Hours |
+|-----------|------|--------------|------------|
+| 7.1 | API Documentation | Phase 1, 2 | 6 |
+| 7.2 | Architecture Docs | Phase 1, 2 | 6 |
+| All | Integration Testing | All above | 16 |
+| All | End-to-End Testing | All above | 16 |
+
+**Phase 3 Exit Criteria**:
+- [ ] Complete API documentation
+- [ ] Architecture diagrams
+- [ ] Deployment guide
+- [ ] All integration tests passing
+- [ ] End-to-end tests passing
+
+---
+
+## 🚀 MAINNET LAUNCH DAY CHECKLIST (Thursday 9 AM ET)
+
+### Immediate Actions (Launch Hour):
+- [ ] Get mainnet contract addresses from 8004scan or official announcement
+- [ ] Update production environment variables
+- [ ] Deploy to production
+- [ ] Run smoke tests
+- [ ] Monitor error rates
+
+### Validation:
+- [ ] Can query mainnet agents
+- [ ] Reputation reading works with new format
+- [ ] Scores calculate correctly
+- [ ] API responses are correct
+
+### Rollback Plan:
+- [ ] Keep previous version deployed as rollback option
+- [ ] Document rollback procedure
+- [ ] Monitor for 24 hours
+
+---
+
+## 📝 GIT WORKFLOW
+
+### Branch Naming:
+```
+phase-1/{agent-name}/{feature}
+task-{phase}-{agent}-{task}-{description}
+```
+
+### Commit Convention:
+```
+{type}({scope}): {description}
+
+Closes: {task-id}
+```
+
+Types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `security`
+
+---
+
+## ✅ MASTER CHECKLIST
+
+### Pre-Mainnet (This Week):
+- [ ] Sub-Agent 1.1 REVISED: Official ABIs and testnet addresses
+- [ ] Sub-Agent 1.2 REVISED: Value parser and identity lookup
+- [ ] Sub-Agent 1.3 REVISED: Integration tests on testnet
+- [ ] Sub-Agent 3.1: Test framework setup
+- [ ] Mainnet launch day preparation
+
+### Mainnet Launch Day:
+- [ ] Get mainnet addresses
+- [ ] Update production
+- [ ] Deploy
+- [ ] Validate
+
+### Post-Launch:
+- [ ] Sub-Agent 2.x: x402 data pipeline
+- [ ] Sub-Agent 3.2 REVISED: Scoring tests (new format)
+- [ ] Sub-Agent 3.3: API tests
+- [ ] Sub-Agent 4.x: Security hardening
+- [ ] Sub-Agent 5.x: Performance optimization
+- [ ] Sub-Agent 6.x: Code quality
+- [ ] Sub-Agent 7.x: Documentation
+
+---
+
+## 🎬 EXECUTION ORDER
+
+### Start Immediately (Monday):
+```
+Parallel Execution:
+├── Agent 1 spawns: 1.1 REVISED (addresses) → 1.2 REVISED (parser) → 1.3 REVISED (tests)
+│   └── CRITICAL PATH - must complete by Wednesday
+│
+└── Agent 3 spawns: 3.1 (test framework)
+    └── Can run in parallel
+```
+
+### Mainnet Launch Day (Thursday):
+```
+Agent 1:
+├── Get mainnet addresses (9 AM ET)
+├── Update production
+└── Deploy
+```
+
+### Week 2:
+```
+Parallel Execution:
+├── Agent 2: x402 pipeline (2.1 → 2.2 → 2.3)
+├── Agent 3: Remaining tests (3.2 REVISED → 3.3)
+├── Agent 4: Security (4.1 → 4.2 → 4.3)
+├── Agent 5: Performance (5.1 → 5.2 → 5.3)
+├── Agent 6: Code quality (6.1 → 6.2)
+└── Agent 7: Documentation (7.1, 7.2)
+```
+
+---
+
+## 📞 EMERGENCY CONTACTS
+
+If something goes wrong:
+1. Check 8004scan.io for contract status
+2. Check official ERC-8004 Discord/Telegram
+3. Review eips.ethereum.org/EIPS/eip-8004 for spec clarifications
+
+---
+
+Last Updated: January 28, 2026
+Mainnet Launch: Thursday, January 29, 2026 (9 AM ET)
