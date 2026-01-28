@@ -7,7 +7,15 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test:erc8004": "vitest run src/lib/data/erc8004/__tests__"
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage",
+    "test:ci": "vitest run --coverage",
+    "test:erc8004": "vitest run src/lib/data/erc8004/__tests__",
+    "test:x402": "vitest run src/lib/data/x402/__tests__",
+    "test:scoring": "vitest run src/lib/scoring/__tests__",
+    "test:api": "vitest run src/app/api",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@radix-ui/react-progress": "^1.1.8",
@@ -30,14 +38,21 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "@types/node": "^20.17.10",
     "@types/react": "^18.3.17",
     "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^5.1.2",
+    "@vitest/coverage-v8": "^4.0.18",
+    "@vitest/ui": "^4.0.18",
     "autoprefixer": "^10.4.23",
     "eslint": "^8.57.1",
     "eslint-config-next": "14.2.21",
+    "jsdom": "^27.4.0",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "vitest": "^4.0.18"
   }
 }
