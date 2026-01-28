@@ -64,6 +64,10 @@ export interface X402Transaction {
   timestamp: Date;
   blockNumber: number;
   resourceUrl?: string;
+  // NEW FIELDS:
+  paymentType?: "incoming" | "outgoing" | "facilitator_fee";
+  x402Version?: "v1" | "v2";
+  requestId?: string;
 }
 
 export interface X402AgentMetrics {
@@ -88,7 +92,8 @@ export interface X402DataSource {
   getAgentMetrics(address: string): Promise<X402AgentMetrics>;
   getRecentTransactions(
     address: string,
-    limit?: number
+    limit?: number,
+    cursor?: string
   ): Promise<X402Transaction[]>;
 }
 
