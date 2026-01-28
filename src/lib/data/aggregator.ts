@@ -158,7 +158,20 @@ async function tryGetReputation(agentId: number): Promise<{
 } | null> {
   try {
     const readers = getERC8004Readers();
-    return await readers.reputation.getReputationForScoring(agentId);
+    const reputation = await readers.reputation.getReputationForScoring(agentId);
+    
+    // Format the summary value using the helper
+    const { ReputationRegistryReader } = await import("./erc8004/reputation");
+    const formatted = ReputationRegistryReader.formatSummary({
+      count: reputation.feedbackCount,
+      summaryValue: reputation.summaryValue,
+      summaryValueDecimals: reputation.summaryValueDecimals,
+    });
+    
+    return {
+      feedbackCount: reputation.feedbackCount,
+      averageScore: formatted.averageScore,
+    };
   } catch {
     return null;
   }

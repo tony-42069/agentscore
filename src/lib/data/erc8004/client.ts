@@ -1,9 +1,18 @@
 import { createPublicClient, http, type PublicClient } from "viem";
-import { base, baseSepolia } from "viem/chains";
+import { base, baseSepolia, sepolia } from "viem/chains";
 
-// Contract addresses - THESE NEED TO BE REPLACED WITH REAL ADDRESSES
+// Contract addresses - Official ERC-8004 Deployment Addresses (January 2026 Testnet)
+// Source: https://github.com/erc-8004/erc-8004-contracts
 export const ERC8004_ADDRESSES = {
-  base: {
+  // ETH Sepolia - DEPLOYED AND ACTIVE
+  sepolia: {
+    identityRegistry: "0x8004A818BFB912233c491871b3d84c89A494BD9e",
+    reputationRegistry: "0x8004B663056A597Dffe9eCcC1965A193B7388713",
+    validationRegistry: "0x8004Cb1BF31DAf7788923b405b754f57acEB4272",
+  },
+  // Base Sepolia - NOT YET DEPLOYED (as of January 2026)
+  // Per README: "to be deployed"
+  baseSepolia: {
     identityRegistry:
       (process.env.ERC8004_IDENTITY_REGISTRY as `0x${string}`) ||
       "0x0000000000000000000000000000000000000000",
@@ -14,7 +23,8 @@ export const ERC8004_ADDRESSES = {
       (process.env.ERC8004_VALIDATION_REGISTRY as `0x${string}`) ||
       "0x0000000000000000000000000000000000000000",
   },
-  baseSepolia: {
+  // Base Mainnet - NOT YET DEPLOYED
+  base: {
     identityRegistry:
       (process.env.ERC8004_IDENTITY_REGISTRY as `0x${string}`) ||
       "0x0000000000000000000000000000000000000000",
@@ -27,25 +37,38 @@ export const ERC8004_ADDRESSES = {
   },
 } as const;
 
-export type ERC8004Network = "base" | "baseSepolia";
+export type ERC8004Network = "sepolia" | "base" | "baseSepolia";
 
 // eslint-disable-next-line
 let clientCache: Record<string, any> = {};
 
 /**
- * Create viem client for Base
+ * Create viem client for ERC-8004 network
  */
 export function createERC8004Client(
-  network: ERC8004Network = "base"
+  network: ERC8004Network = "sepolia"
 ): PublicClient {
   const cacheKey = network;
 
   if (!clientCache[cacheKey]) {
-    const chain = network === "base" ? base : baseSepolia;
-    const rpcUrl = process.env.BASE_RPC_URL;
+    const chain =
+      network === "sepolia"
+        ? sepolia
+        : network === "base"
+          ? base
+          : baseSepolia;
+
+    let rpcUrl: string | undefined;
+    if (network === "sepolia") {
+      rpcUrl = process.env.SEPOLIA_RPC_URL;
+    } else if (network === "base") {
+      rpcUrl = process.env.BASE_RPC_URL;
+    } else {
+      rpcUrl = process.env.BASE_SEPOLIA_RPC_URL;
+    }
 
     if (!rpcUrl) {
-      console.warn("BASE_RPC_URL not configured, using public RPC");
+      console.warn(`${network} RPC URL not configured, using public RPC`);
     }
 
     clientCache[cacheKey] = createPublicClient({
@@ -60,15 +83,15 @@ export function createERC8004Client(
 /**
  * Get contract addresses for network
  */
-export function getContractAddresses(network: ERC8004Network = "base") {
+export function getContractAddresses(network: ERC8004Network = "sepolia") {
   return ERC8004_ADDRESSES[network];
 }
 
 /**
- * Check if ERC-8004 contracts are configured
+ * Check if ERC-8004 contracts are configured for a network
  */
-export function isERC8004Configured(): boolean {
-  const addresses = getContractAddresses();
+export function isERC8004Configured(network: ERC8004Network = "sepolia"): boolean {
+  const addresses = getContractAddresses(network);
   return (
     addresses.identityRegistry !==
       "0x0000000000000000000000000000000000000000" &&
@@ -77,4 +100,13 @@ export function isERC8004Configured(): boolean {
     addresses.validationRegistry !==
       "0x0000000000000000000000000000000000000000"
   );
+}
+
+/**
+ * Get the recommended network for ERC-8004 operations
+ * Returns the first network with deployed contracts
+ */
+export function getRecommendedNetwork(): ERC8004Network {
+  // Sepolia is the only deployed network as of January 2026
+  return "sepolia";
 }

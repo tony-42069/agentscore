@@ -12,6 +12,8 @@ export * from "./client";
 export * from "./identity";
 export * from "./reputation";
 export * from "./validation";
+export * from "./value-parser";
+export * from "./indexer";
 
 import { createERC8004Client, type ERC8004Network } from "./client";
 import { IdentityRegistryReader } from "./identity";
@@ -30,7 +32,7 @@ let readersCache: Record<string, ERC8004Readers> = {};
  * Create all ERC-8004 readers for a network
  */
 export function createERC8004Readers(
-  network: ERC8004Network = "base"
+  network: ERC8004Network = "sepolia"
 ): ERC8004Readers {
   if (!readersCache[network]) {
     const client = createERC8004Client(network);
@@ -50,7 +52,7 @@ export function createERC8004Readers(
  */
 export async function getAgentERC8004Data(
   agentId: number,
-  network: ERC8004Network = "base"
+  network: ERC8004Network = "sepolia"
 ) {
   const readers = createERC8004Readers(network);
 
@@ -64,6 +66,17 @@ export async function getAgentERC8004Data(
   // Get validation data
   const validation = await readers.validation.getValidationForScoring(agentId);
 
+  // Get detailed reputation metrics
+  const reputationMetrics =
+    await readers.reputation.getReputationMetrics(agentId);
+
+  // Format the summary value for display
+  const formattedReputation = ReputationRegistryReader.formatSummary({
+    count: reputation.feedbackCount,
+    summaryValue: reputation.summaryValue,
+    summaryValueDecimals: reputation.summaryValueDecimals,
+  });
+
   return {
     identity: {
       agentId,
@@ -75,7 +88,10 @@ export async function getAgentERC8004Data(
     },
     reputation: {
       feedbackCount: reputation.feedbackCount,
-      averageScore: reputation.averageScore,
+      summaryValue: reputation.summaryValue,
+      summaryValueDecimals: reputation.summaryValueDecimals,
+      averageScore: formattedReputation.averageScore,
+      metrics: reputationMetrics,
     },
     validation: {
       totalValidations: validation.totalValidations,

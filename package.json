@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test:erc8004": "vitest run src/lib/data/erc8004/__tests__"
   },
   "dependencies": {
     "@radix-ui/react-progress": "^1.1.8",

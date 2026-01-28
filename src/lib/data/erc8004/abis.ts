@@ -1,45 +1,66 @@
 /**
  * ERC-8004 Contract ABIs
+ * 
+ * Official ABIs from https://github.com/erc-8004/erc-8004-contracts
+ * Updated: January 2026
+ * 
+ * CRITICAL: ReputationRegistry now uses value/valueDecimals format instead of score
+ * - OLD: { name: "score", type: "uint8" }
+ * - NEW: { name: "value", type: "int128" }, { name: "valueDecimals", type: "uint8" }
  */
 
 export const IDENTITY_REGISTRY_ABI = [
   // ERC-721 standard functions
   {
-    inputs: [{ name: "owner", type: "address" }],
+    inputs: [{ internalType: "address", name: "owner", type: "address" }],
     name: "balanceOf",
-    outputs: [{ name: "", type: "uint256" }],
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
     stateMutability: "view",
     type: "function",
   },
   {
-    inputs: [{ name: "tokenId", type: "uint256" }],
+    inputs: [{ internalType: "uint256", name: "tokenId", type: "uint256" }],
     name: "ownerOf",
-    outputs: [{ name: "", type: "address" }],
+    outputs: [{ internalType: "address", name: "", type: "address" }],
     stateMutability: "view",
     type: "function",
   },
   {
-    inputs: [{ name: "tokenId", type: "uint256" }],
+    inputs: [{ internalType: "uint256", name: "tokenId", type: "uint256" }],
     name: "tokenURI",
-    outputs: [{ name: "", type: "string" }],
+    outputs: [{ internalType: "string", name: "", type: "string" }],
     stateMutability: "view",
     type: "function",
   },
   // ERC-8004 specific
   {
     inputs: [
-      { name: "agentId", type: "uint256" },
-      { name: "key", type: "string" },
+      { internalType: "uint256", name: "agentId", type: "uint256" },
+      { internalType: "string", name: "metadataKey", type: "string" },
     ],
     name: "getMetadata",
-    outputs: [{ name: "", type: "bytes" }],
+    outputs: [{ internalType: "bytes", name: "", type: "bytes" }],
     stateMutability: "view",
     type: "function",
   },
   {
-    inputs: [{ name: "tokenURI", type: "string" }],
+    inputs: [{ internalType: "uint256", name: "agentId", type: "uint256" }],
+    name: "getAgentWallet",
+    outputs: [{ internalType: "address", name: "", type: "address" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
     name: "register",
-    outputs: [{ name: "agentId", type: "uint256" }],
+    outputs: [{ internalType: "uint256", name: "agentId", type: "uint256" }],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "string", name: "agentURI", type: "string" }],
+    name: "register",
+    outputs: [{ internalType: "uint256", name: "agentId", type: "uint256" }],
     stateMutability: "nonpayable",
     type: "function",
   },
@@ -47,9 +68,9 @@ export const IDENTITY_REGISTRY_ABI = [
   {
     anonymous: false,
     inputs: [
-      { indexed: true, name: "agentId", type: "uint256" },
-      { indexed: false, name: "tokenURI", type: "string" },
-      { indexed: true, name: "owner", type: "address" },
+      { indexed: true, internalType: "uint256", name: "agentId", type: "uint256" },
+      { indexed: false, internalType: "string", name: "agentURI", type: "string" },
+      { indexed: true, internalType: "address", name: "owner", type: "address" },
     ],
     name: "Registered",
     type: "event",
@@ -57,92 +78,198 @@ export const IDENTITY_REGISTRY_ABI = [
   {
     anonymous: false,
     inputs: [
-      { indexed: true, name: "from", type: "address" },
-      { indexed: true, name: "to", type: "address" },
-      { indexed: true, name: "tokenId", type: "uint256" },
+      { indexed: true, internalType: "address", name: "from", type: "address" },
+      { indexed: true, internalType: "address", name: "to", type: "address" },
+      { indexed: true, internalType: "uint256", name: "tokenId", type: "uint256" },
     ],
     name: "Transfer",
     type: "event",
   },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, internalType: "uint256", name: "agentId", type: "uint256" },
+      { indexed: true, internalType: "string", name: "indexedMetadataKey", type: "string" },
+      { indexed: false, internalType: "string", name: "metadataKey", type: "string" },
+      { indexed: false, internalType: "bytes", name: "metadataValue", type: "bytes" },
+    ],
+    name: "MetadataSet",
+    type: "event",
+  },
 ] as const;
 
+/**
+ * ReputationRegistry ABI - UPDATED with value/valueDecimals format
+ * 
+ * BREAKING CHANGE: The contract now uses:
+ * - value: int128 (signed fixed-point number)
+ * - valueDecimals: uint8 (0-18, number of decimal places)
+ * 
+ * Example: value=9977, valueDecimals=2 → 99.77
+ * Example: value=560, valueDecimals=0 → 560
+ */
 export const REPUTATION_REGISTRY_ABI = [
   {
     inputs: [],
     name: "getIdentityRegistry",
-    outputs: [{ name: "", type: "address" }],
+    outputs: [{ internalType: "address", name: "", type: "address" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "uint256", name: "agentId", type: "uint256" }],
+    name: "getClients",
+    outputs: [{ internalType: "address[]", name: "", type: "address[]" }],
     stateMutability: "view",
     type: "function",
   },
   {
     inputs: [
-      { name: "agentId", type: "uint256" },
-      { name: "clientAddresses", type: "address[]" },
-      { name: "tag1", type: "bytes32" },
-      { name: "tag2", type: "bytes32" },
+      { internalType: "uint256", name: "agentId", type: "uint256" },
+      { internalType: "address", name: "clientAddress", type: "address" },
+    ],
+    name: "getLastIndex",
+    outputs: [{ internalType: "uint64", name: "", type: "uint64" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  // CRITICAL: getSummary now returns (count, summaryValue, summaryValueDecimals)
+  {
+    inputs: [
+      { internalType: "uint256", name: "agentId", type: "uint256" },
+      { internalType: "address[]", name: "clientAddresses", type: "address[]" },
+      { internalType: "string", name: "tag1", type: "string" },
+      { internalType: "string", name: "tag2", type: "string" },
     ],
     name: "getSummary",
     outputs: [
-      { name: "count", type: "uint64" },
-      { name: "averageScore", type: "uint8" },
+      { internalType: "uint64", name: "count", type: "uint64" },
+      { internalType: "int128", name: "summaryValue", type: "int128" },
+      { internalType: "uint8", name: "summaryValueDecimals", type: "uint8" },
     ],
     stateMutability: "view",
     type: "function",
   },
+  // CRITICAL: readFeedback now returns (value, valueDecimals, tag1, tag2, isRevoked)
   {
     inputs: [
-      { name: "agentId", type: "uint256" },
-      { name: "clientAddress", type: "address" },
-      { name: "index", type: "uint64" },
+      { internalType: "uint256", name: "agentId", type: "uint256" },
+      { internalType: "address", name: "clientAddress", type: "address" },
+      { internalType: "uint64", name: "feedbackIndex", type: "uint64" },
     ],
     name: "readFeedback",
     outputs: [
-      { name: "score", type: "uint8" },
-      { name: "tag1", type: "bytes32" },
-      { name: "tag2", type: "bytes32" },
-      { name: "isRevoked", type: "bool" },
+      { internalType: "int128", name: "value", type: "int128" },
+      { internalType: "uint8", name: "valueDecimals", type: "uint8" },
+      { internalType: "string", name: "tag1", type: "string" },
+      { internalType: "string", name: "tag2", type: "string" },
+      { internalType: "bool", name: "isRevoked", type: "bool" },
     ],
     stateMutability: "view",
+    type: "function",
+  },
+  // CRITICAL: readAllFeedback now returns arrays of value/valueDecimals
+  {
+    inputs: [
+      { internalType: "uint256", name: "agentId", type: "uint256" },
+      { internalType: "address[]", name: "clientAddresses", type: "address[]" },
+      { internalType: "string", name: "tag1", type: "string" },
+      { internalType: "string", name: "tag2", type: "string" },
+      { internalType: "bool", name: "includeRevoked", type: "bool" },
+    ],
+    name: "readAllFeedback",
+    outputs: [
+      { internalType: "address[]", name: "clients", type: "address[]" },
+      { internalType: "uint64[]", name: "feedbackIndexes", type: "uint64[]" },
+      { internalType: "int128[]", name: "values", type: "int128[]" },
+      { internalType: "uint8[]", name: "valueDecimals", type: "uint8[]" },
+      { internalType: "string[]", name: "tag1s", type: "string[]" },
+      { internalType: "string[]", name: "tag2s", type: "string[]" },
+      { internalType: "bool[]", name: "revokedStatuses", type: "bool[]" },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  // CRITICAL: giveFeedback now takes (value, valueDecimals) instead of score
+  {
+    inputs: [
+      { internalType: "uint256", name: "agentId", type: "uint256" },
+      { internalType: "int128", name: "value", type: "int128" },
+      { internalType: "uint8", name: "valueDecimals", type: "uint8" },
+      { internalType: "string", name: "tag1", type: "string" },
+      { internalType: "string", name: "tag2", type: "string" },
+      { internalType: "string", name: "endpoint", type: "string" },
+      { internalType: "string", name: "feedbackURI", type: "string" },
+      { internalType: "bytes32", name: "feedbackHash", type: "bytes32" },
+    ],
+    name: "giveFeedback",
+    outputs: [],
+    stateMutability: "nonpayable",
     type: "function",
   },
   {
     inputs: [
-      { name: "agentId", type: "uint256" },
-      { name: "clientAddresses", type: "address[]" },
-      { name: "tag1", type: "bytes32" },
-      { name: "tag2", type: "bytes32" },
-      { name: "includeRevoked", type: "bool" },
+      { internalType: "uint256", name: "agentId", type: "uint256" },
+      { internalType: "uint64", name: "feedbackIndex", type: "uint64" },
     ],
-    name: "readAllFeedback",
-    outputs: [
-      { name: "clientAddresses", type: "address[]" },
-      { name: "scores", type: "uint8[]" },
-      { name: "tag1s", type: "bytes32[]" },
-      { name: "tag2s", type: "bytes32[]" },
-      { name: "revokedStatuses", type: "bool[]" },
-    ],
-    stateMutability: "view",
+    name: "revokeFeedback",
+    outputs: [],
+    stateMutability: "nonpayable",
     type: "function",
   },
   {
-    inputs: [{ name: "agentId", type: "uint256" }],
-    name: "getClients",
-    outputs: [{ name: "", type: "address[]" }],
-    stateMutability: "view",
+    inputs: [
+      { internalType: "uint256", name: "agentId", type: "uint256" },
+      { internalType: "address", name: "clientAddress", type: "address" },
+      { internalType: "uint64", name: "feedbackIndex", type: "uint64" },
+      { internalType: "string", name: "responseURI", type: "string" },
+      { internalType: "bytes32", name: "responseHash", type: "bytes32" },
+    ],
+    name: "appendResponse",
+    outputs: [],
+    stateMutability: "nonpayable",
     type: "function",
+  },
+  // Events - CRITICAL: NewFeedback now has value/valueDecimals
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, internalType: "uint256", name: "agentId", type: "uint256" },
+      { indexed: true, internalType: "address", name: "clientAddress", type: "address" },
+      { indexed: false, internalType: "uint64", name: "feedbackIndex", type: "uint64" },
+      { indexed: false, internalType: "int128", name: "value", type: "int128" },
+      { indexed: false, internalType: "uint8", name: "valueDecimals", type: "uint8" },
+      { indexed: true, internalType: "string", name: "indexedTag1", type: "string" },
+      { indexed: false, internalType: "string", name: "tag1", type: "string" },
+      { indexed: false, internalType: "string", name: "tag2", type: "string" },
+      { indexed: false, internalType: "string", name: "endpoint", type: "string" },
+      { indexed: false, internalType: "string", name: "feedbackURI", type: "string" },
+      { indexed: false, internalType: "bytes32", name: "feedbackHash", type: "bytes32" },
+    ],
+    name: "NewFeedback",
+    type: "event",
   },
   {
     anonymous: false,
     inputs: [
-      { indexed: true, name: "agentId", type: "uint256" },
-      { indexed: true, name: "clientAddress", type: "address" },
-      { indexed: false, name: "score", type: "uint8" },
-      { indexed: true, name: "tag1", type: "bytes32" },
-      { indexed: false, name: "tag2", type: "bytes32" },
-      { indexed: false, name: "fileuri", type: "string" },
-      { indexed: false, name: "filehash", type: "bytes32" },
+      { indexed: true, internalType: "uint256", name: "agentId", type: "uint256" },
+      { indexed: true, internalType: "address", name: "clientAddress", type: "address" },
+      { indexed: true, internalType: "uint64", name: "feedbackIndex", type: "uint64" },
     ],
-    name: "NewFeedback",
+    name: "FeedbackRevoked",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, internalType: "uint256", name: "agentId", type: "uint256" },
+      { indexed: true, internalType: "address", name: "clientAddress", type: "address" },
+      { indexed: false, internalType: "uint64", name: "feedbackIndex", type: "uint64" },
+      { indexed: true, internalType: "address", name: "responder", type: "address" },
+      { indexed: false, internalType: "string", name: "responseURI", type: "string" },
+      { indexed: false, internalType: "bytes32", name: "responseHash", type: "bytes32" },
+    ],
+    name: "ResponseAppended",
     type: "event",
   },
 ] as const;
@@ -151,53 +278,99 @@ export const VALIDATION_REGISTRY_ABI = [
   {
     inputs: [],
     name: "getIdentityRegistry",
-    outputs: [{ name: "", type: "address" }],
+    outputs: [{ internalType: "address", name: "", type: "address" }],
     stateMutability: "view",
     type: "function",
   },
   {
-    inputs: [{ name: "requestHash", type: "bytes32" }],
+    inputs: [{ internalType: "bytes32", name: "requestHash", type: "bytes32" }],
     name: "getValidationStatus",
     outputs: [
-      { name: "validatorAddress", type: "address" },
-      { name: "agentId", type: "uint256" },
-      { name: "response", type: "uint8" },
-      { name: "tag", type: "bytes32" },
-      { name: "lastUpdate", type: "uint256" },
+      { internalType: "address", name: "validatorAddress", type: "address" },
+      { internalType: "uint256", name: "agentId", type: "uint256" },
+      { internalType: "uint8", name: "response", type: "uint8" },
+      { internalType: "bytes32", name: "responseHash", type: "bytes32" },
+      { internalType: "string", name: "tag", type: "string" },
+      { internalType: "uint256", name: "lastUpdate", type: "uint256" },
     ],
     stateMutability: "view",
     type: "function",
   },
   {
     inputs: [
-      { name: "agentId", type: "uint256" },
-      { name: "validatorAddresses", type: "address[]" },
-      { name: "tag", type: "bytes32" },
+      { internalType: "uint256", name: "agentId", type: "uint256" },
+      { internalType: "address[]", name: "validatorAddresses", type: "address[]" },
+      { internalType: "string", name: "tag", type: "string" },
     ],
     name: "getSummary",
     outputs: [
-      { name: "count", type: "uint64" },
-      { name: "avgResponse", type: "uint8" },
+      { internalType: "uint64", name: "count", type: "uint64" },
+      { internalType: "uint8", name: "avgResponse", type: "uint8" },
     ],
     stateMutability: "view",
     type: "function",
   },
   {
-    inputs: [{ name: "agentId", type: "uint256" }],
+    inputs: [{ internalType: "uint256", name: "agentId", type: "uint256" }],
     name: "getAgentValidations",
-    outputs: [{ name: "", type: "bytes32[]" }],
+    outputs: [{ internalType: "bytes32[]", name: "", type: "bytes32[]" }],
     stateMutability: "view",
     type: "function",
+  },
+  {
+    inputs: [{ internalType: "address", name: "validatorAddress", type: "address" }],
+    name: "getValidatorRequests",
+    outputs: [{ internalType: "bytes32[]", name: "", type: "bytes32[]" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      { internalType: "address", name: "validatorAddress", type: "address" },
+      { internalType: "uint256", name: "agentId", type: "uint256" },
+      { internalType: "string", name: "requestURI", type: "string" },
+      { internalType: "bytes32", name: "requestHash", type: "bytes32" },
+    ],
+    name: "validationRequest",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      { internalType: "bytes32", name: "requestHash", type: "bytes32" },
+      { internalType: "uint8", name: "response", type: "uint8" },
+      { internalType: "string", name: "responseURI", type: "string" },
+      { internalType: "bytes32", name: "responseHash", type: "bytes32" },
+      { internalType: "string", name: "tag", type: "string" },
+    ],
+    name: "validationResponse",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  // Events
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, internalType: "address", name: "validatorAddress", type: "address" },
+      { indexed: true, internalType: "uint256", name: "agentId", type: "uint256" },
+      { indexed: false, internalType: "string", name: "requestURI", type: "string" },
+      { indexed: true, internalType: "bytes32", name: "requestHash", type: "bytes32" },
+    ],
+    name: "ValidationRequest",
+    type: "event",
   },
   {
     anonymous: false,
     inputs: [
-      { indexed: true, name: "validatorAddress", type: "address" },
-      { indexed: true, name: "agentId", type: "uint256" },
-      { indexed: true, name: "requestHash", type: "bytes32" },
-      { indexed: false, name: "response", type: "uint8" },
-      { indexed: false, name: "responseUri", type: "string" },
-      { indexed: false, name: "tag", type: "bytes32" },
+      { indexed: true, internalType: "address", name: "validatorAddress", type: "address" },
+      { indexed: true, internalType: "uint256", name: "agentId", type: "uint256" },
+      { indexed: true, internalType: "bytes32", name: "requestHash", type: "bytes32" },
+      { indexed: false, internalType: "uint8", name: "response", type: "uint8" },
+      { indexed: false, internalType: "string", name: "responseURI", type: "string" },
+      { indexed: false, internalType: "bytes32", name: "responseHash", type: "bytes32" },
+      { indexed: false, internalType: "string", name: "tag", type: "string" },
     ],
     name: "ValidationResponse",
     type: "event",
