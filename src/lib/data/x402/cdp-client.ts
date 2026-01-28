@@ -469,3 +469,58 @@ export class CDPClient {
     }
   }
 }
+
+// CDP Client singleton cache
+let cdpClientCache: CDPClient | null = null;
+
+/**
+ * Create or retrieve cached CDP API client
+ *
+ * Returns a cached instance if one exists, or creates a new one from
+ * environment variables. Returns null if credentials are not configured.
+ *
+ * @returns CDPClient instance or null if credentials missing
+ *
+ * @example
+ * ```typescript
+ * const client = createCDPClient();
+ * if (client) {
+ *   const transactions = await client.getTransactions({
+ *     address: '0x...',
+ *     chain: 'base'
+ *   });
+ * }
+ * ```
+ */
+export function createCDPClient(): CDPClient | null {
+  if (cdpClientCache) {
+    return cdpClientCache;
+  }
+
+  const apiKey = process.env.CDP_API_KEY;
+  const apiSecret = process.env.CDP_API_SECRET;
+
+  if (!apiKey || !apiSecret) {
+    console.warn(
+      "CDP API credentials not configured (CDP_API_KEY, CDP_API_SECRET)"
+    );
+    return null;
+  }
+
+  cdpClientCache = new CDPClient({
+    apiKey,
+    apiSecret,
+    baseUrl: process.env.CDP_BASE_URL,
+  });
+
+  return cdpClientCache;
+}
+
+/**
+ * Reset the CDP client cache
+ *
+ * Useful for testing or when credentials change.
+ */
+export function resetCDPClientCache(): void {
+  cdpClientCache = null;
+}

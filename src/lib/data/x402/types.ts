@@ -24,6 +24,33 @@ export const TOKENS = {
   },
 } as const;
 
+// Known x402 facilitator addresses
+export const FACILITATORS = {
+  base: {
+    // Coinbase x402 facilitator on Base mainnet
+    coinbase: "0x0000000000000000000000000000000000000000", // TODO: Update with actual address
+    // Add other known facilitators as they are discovered
+  },
+  solana: {
+    // Coinbase x402 facilitator on Solana mainnet
+    coinbase: "11111111111111111111111111111111", // TODO: Update with actual address
+    // Add other known facilitators as they are discovered
+  },
+} as const;
+
+/**
+ * Check if an address is a known x402 facilitator
+ */
+export function isKnownFacilitator(
+  address: string,
+  chain: X402Chain
+): boolean {
+  const facilitators = Object.values(FACILITATORS[chain]);
+  return facilitators.some(
+    (f) => f.toLowerCase() === address.toLowerCase()
+  );
+}
+
 export interface X402Transaction {
   txHash: string;
   chain: X402Chain;

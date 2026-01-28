@@ -7,33 +7,33 @@
 
 import { createERC8004Readers, type ERC8004Readers } from "./erc8004";
 import {
-  createX402Readers,
-  getCombinedX402Metrics,
-  type X402Readers,
+  createHybridX402Reader,
+  type HybridX402Reader,
 } from "./x402";
 import type { AgentData } from "../scoring/types";
 
 let erc8004Readers: ERC8004Readers | null = null;
-let x402Readers: X402Readers | null = null;
+let x402HybridReader: HybridX402Reader | null = null;
 
 function getERC8004Readers(): ERC8004Readers {
   if (!erc8004Readers) {
-    const network = process.env.NODE_ENV === "production" ? "base" : "baseSepolia";
+    const network =
+      process.env.NODE_ENV === "production" ? "base" : "baseSepolia";
     erc8004Readers = createERC8004Readers(network);
   }
   return erc8004Readers;
 }
 
-function getX402Readers(): X402Readers {
-  if (!x402Readers) {
-    x402Readers = createX402Readers({
+function getX402HybridReader(): HybridX402Reader {
+  if (!x402HybridReader) {
+    x402HybridReader = createHybridX402Reader({
       baseRpcUrl: process.env.BASE_RPC_URL,
       solanaRpcUrl: process.env.SOLANA_RPC_URL,
       cdpApiKey: process.env.CDP_API_KEY,
       cdpApiSecret: process.env.CDP_API_SECRET,
     });
   }
-  return x402Readers;
+  return x402HybridReader;
 }
 
 /**
@@ -101,9 +101,9 @@ export async function aggregateAgentData(
     console.warn("ERC-8004 lookup failed:", error);
   }
 
-  // Get x402 metrics from both chains
+  // Get x402 metrics from both chains using hybrid reader
   try {
-    const x402Data = await getCombinedX402Metrics(getX402Readers(), {
+    const x402Data = await getX402HybridReader().getCombinedMetrics({
       base: data.baseWallet,
       solana: data.solanaWallet,
     });
@@ -159,15 +159,17 @@ async function tryGetReputation(agentId: number): Promise<{
   try {
     const readers = getERC8004Readers();
     const reputation = await readers.reputation.getReputationForScoring(agentId);
-    
+
     // Format the summary value using the helper
-    const { ReputationRegistryReader } = await import("./erc8004/reputation");
+    const { ReputationRegistryReader } = await import(
+      "./erc8004/reputation"
+    );
     const formatted = ReputationRegistryReader.formatSummary({
       count: reputation.feedbackCount,
       summaryValue: reputation.summaryValue,
       summaryValueDecimals: reputation.summaryValueDecimals,
     });
-    
+
     return {
       feedbackCount: reputation.feedbackCount,
       averageScore: formatted.averageScore,
@@ -193,7 +195,9 @@ async function tryGetValidation(agentId: number): Promise<{
 /**
  * Get agent identity info for display
  */
-export async function getAgentIdentity(address: string): Promise<{
+export async function getAgentIdentity(
+  address: string
+): Promise<{
   agentId?: number;
   name?: string;
   description?: string;
