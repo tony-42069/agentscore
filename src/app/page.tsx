@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { motion, useScroll, useTransform, useInView } from "framer-motion";
-import { ArrowRight, ArrowUpRight, Search } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Search, ChevronDown } from "lucide-react";
 
 // Hook for recent searches
 function useRecentSearches() {
@@ -167,6 +167,12 @@ export default function HomePage() {
       
       {/* Scoring */}
       <Scoring />
+      
+      {/* Logo Cloud */}
+      <LogoCloud />
+      
+      {/* FAQ */}
+      <FAQ />
       
       {/* CTA */}
       <CallToAction />
@@ -342,7 +348,7 @@ function SampleAddresses() {
             onClick={() => router.push(`/agent/${sample.address}`)}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            className="flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/50 hover:bg-secondary border border-border/50 text-sm transition-colors group"
+            className="flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/70 hover:bg-secondary border border-border/60 text-sm transition-colors group shadow-sm"
           >
             <span className={`w-2 h-2 rounded-full ${sample.chain === 'base' ? 'bg-blue-400' : 'bg-purple-400'}`} />
             <span className="text-muted-foreground group-hover:text-foreground">{sample.label}</span>
@@ -419,7 +425,7 @@ function RecentSearches({
             onClick={() => onSelect(address)}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary/30 hover:bg-secondary text-xs text-muted-foreground hover:text-foreground transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary/60 hover:bg-secondary text-xs text-muted-foreground hover:text-foreground transition-colors border border-border/40"
           >
             {getChainIcon(address)}
             <span>{truncate(address)}</span>
@@ -646,7 +652,7 @@ function HowItWorks() {
               key={step.number}
               variants={fadeUp}
               whileHover={{ y: -8, transition: { duration: 0.3 } }}
-              className="premium-card rounded-2xl p-8 group"
+              className="rounded-2xl p-8 group bg-card/80 border border-border/60 shadow-lg shadow-black/20 backdrop-blur-sm"
             >
               <div className="flex items-start justify-between mb-8">
                 <span className="font-display text-5xl text-muted-foreground/20 group-hover:text-primary/40 transition-colors duration-500">
@@ -714,7 +720,7 @@ function Scoring() {
           variants={staggerContainer}
           initial="hidden"
           animate={isInView ? "visible" : "hidden"}
-          className="premium-card rounded-2xl p-8 md:p-12"
+          className="rounded-2xl p-8 md:p-12 bg-card/80 border border-border/60 shadow-lg shadow-black/20 backdrop-blur-sm"
         >
           <div className="space-y-6">
             {factors.map((factor, i) => (
@@ -847,12 +853,14 @@ function APIPromo() {
               </p>
               <div className="flex flex-wrap gap-4">
                 <motion.a
-                  href="/docs"
+                  href="https://github.com/tony-42069/agentscore#readme"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   className="luxe-button rounded-full flex items-center gap-2"
                 >
-                  <span>View Documentation</span>
+                  <span>View on GitHub</span>
                   <ArrowRight className="w-4 h-4" />
                 </motion.a>
                 <a
@@ -884,6 +892,145 @@ function APIPromo() {
               ))}
             </div>
           </div>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+function LogoCloud() {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "-100px" });
+
+  const protocols = [
+    { name: "ERC-8004", description: "Identity Protocol", color: "from-blue-500/20 to-cyan-500/20" },
+    { name: "x402", description: "Payment Protocol", color: "from-purple-500/20 to-pink-500/20" },
+    { name: "Base", description: "L2 Network", color: "from-blue-600/20 to-indigo-500/20" },
+    { name: "Solana", description: "L1 Network", color: "from-purple-600/20 to-violet-500/20" },
+  ];
+
+  return (
+    <section ref={ref} className="py-20 px-8 relative z-10">
+      <div className="max-w-5xl mx-auto">
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={isInView ? { opacity: 1 } : {}}
+          className="text-center text-sm text-muted-foreground mb-10 tracking-wide uppercase"
+        >
+          Powered by leading protocols
+        </motion.p>
+        
+        <motion.div
+          variants={staggerContainer}
+          initial="hidden"
+          animate={isInView ? "visible" : "hidden"}
+          className="grid grid-cols-2 md:grid-cols-4 gap-4"
+        >
+          {protocols.map((protocol) => (
+            <motion.div
+              key={protocol.name}
+              variants={fadeUp}
+              whileHover={{ y: -4, transition: { duration: 0.2 } }}
+              className={`p-6 rounded-xl bg-gradient-to-br ${protocol.color} border border-border/50 backdrop-blur-sm shadow-lg shadow-black/20`}
+            >
+              <p className="font-display text-lg text-foreground mb-1">{protocol.name}</p>
+              <p className="text-xs text-muted-foreground">{protocol.description}</p>
+            </motion.div>
+          ))}
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+function FAQ() {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "-100px" });
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
+
+  const faqs = [
+    {
+      question: "What is AgentScore?",
+      answer: "AgentScore is a credit bureau for AI agents, providing unified credit scores (300-850) based on on-chain transaction history, reputation data, and validation attestations across Base and Solana networks."
+    },
+    {
+      question: "How is the score calculated?",
+      answer: "Our algorithm analyzes seven weighted factors: Transaction History (27%), Activity Level (18%), Reputation Score (18%), Buyer Diversity (14%), Validation Status (9%), Account Longevity (9%), and Cross-Chain Presence (5%)."
+    },
+    {
+      question: "What data sources do you use?",
+      answer: "We aggregate data from ERC-8004 identity registries, x402 payment protocol transactions, and on-chain reputation systems. This includes cross-chain activity from both Base and Solana networks."
+    },
+    {
+      question: "Is my agent's data private?",
+      answer: "All data we use is publicly available on-chain. We only aggregate and analyze transaction patterns and reputation data that is already publicly accessible. No private information is collected or stored."
+    },
+    {
+      question: "How can I improve my agent's score?",
+      answer: "Maintain consistent transaction activity, build a diverse buyer base, ensure high uptime and success rates, and seek validation from reputable third parties. Longevity and cross-chain presence also positively impact scores."
+    },
+    {
+      question: "Can I use AgentScore data in my application?",
+      answer: "Yes! We offer a public API for querying agent scores and reports. Check out our GitHub repository for API documentation and integration examples."
+    }
+  ];
+
+  return (
+    <section ref={ref} className="py-32 px-8 relative z-10">
+      <div className="max-w-3xl mx-auto">
+        <motion.div
+          initial={{ opacity: 0, y: 40 }}
+          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.8 }}
+          className="text-center mb-16"
+        >
+          <p className="text-sm tracking-[0.3em] uppercase text-primary mb-4 font-body">
+            FAQ
+          </p>
+          <h2 className="font-display text-4xl md:text-5xl font-normal">
+            Common <span className="italic text-muted-foreground/60">questions</span>
+          </h2>
+        </motion.div>
+
+        <motion.div
+          variants={staggerContainer}
+          initial="hidden"
+          animate={isInView ? "visible" : "hidden"}
+          className="space-y-4"
+        >
+          {faqs.map((faq, index) => (
+            <motion.div
+              key={index}
+              variants={fadeUp}
+              className="rounded-xl overflow-hidden bg-card/80 border border-border/60 shadow-lg shadow-black/20"
+            >
+              <button
+                onClick={() => setOpenIndex(openIndex === index ? null : index)}
+                className="w-full flex items-center justify-between p-6 text-left hover:bg-secondary/30 transition-colors"
+              >
+                <span className="font-body text-foreground pr-4">{faq.question}</span>
+                <motion.div
+                  animate={{ rotate: openIndex === index ? 180 : 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <ChevronDown className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+                </motion.div>
+              </button>
+              <motion.div
+                initial={false}
+                animate={{
+                  height: openIndex === index ? "auto" : 0,
+                  opacity: openIndex === index ? 1 : 0
+                }}
+                transition={{ duration: 0.3 }}
+                className="overflow-hidden"
+              >
+                <p className="px-6 pb-6 text-muted-foreground leading-relaxed">
+                  {faq.answer}
+                </p>
+              </motion.div>
+            </motion.div>
+          ))}
         </motion.div>
       </div>
     </section>
