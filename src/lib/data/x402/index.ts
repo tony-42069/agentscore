@@ -2,16 +2,27 @@
  * x402 Protocol Integration Module
  *
  * Provides readers for x402 transaction data on both Base and Solana chains.
+ * Includes hybrid reader that combines CDP API with on-chain parsing.
  */
 
 export * from "./types";
 export * from "./base";
 export * from "./solana";
 export * from "./cdp-client";
+export * from "./hybrid-reader";
 
 import { BaseX402Reader } from "./base";
 import { SolanaX402Reader } from "./solana";
-import { CDPClient } from "./cdp-client";
+import {
+  CDPClient,
+  createCDPClient,
+  resetCDPClientCache,
+} from "./cdp-client";
+import {
+  HybridX402Reader,
+  type HybridReaderOptions,
+  type CombinedMetricsResult,
+} from "./hybrid-reader";
 import type { X402AgentMetrics } from "./types";
 
 export interface X402Readers {
@@ -20,10 +31,11 @@ export interface X402Readers {
 }
 
 let readersCache: X402Readers | null = null;
-let cdpClientCache: CDPClient | null = null;
+let hybridReaderCache: HybridX402Reader | null = null;
 
 /**
- * Create x402 readers for both chains
+ * Create x402 readers for both chains (legacy - prefer hybrid reader)
+ * @deprecated Use createHybridX402Reader instead for better performance and reliability
  */
 export function createX402Readers(options: {
   baseRpcUrl?: string;
@@ -50,7 +62,57 @@ export function createX402Readers(options: {
 }
 
 /**
+ * Create or retrieve cached hybrid x402 reader
+ *
+ * The hybrid reader provides the best of both worlds:
+ * - CDP API for fast, complete data when available
+ * - On-chain parsing as fallback when CDP is unavailable
+ * - In-memory caching to reduce API calls
+ *
+ * @param options - Optional configuration for RPC URLs
+ * @returns HybridX402Reader instance
+ *
+ * @example
+ * ```typescript
+ * const reader = createHybridX402Reader();
+ *
+ * // Get metrics for a single chain
+ * const metrics = await reader.getAgentMetrics('0x...', 'base');
+ *
+ * // Get combined metrics across chains
+ * const combined = await reader.getCombinedMetrics({
+ *   base: '0x...',
+ *   solana: 'So11...'
+ * });
+ * ```
+ */
+export function createHybridX402Reader(
+  options?: HybridReaderOptions
+): HybridX402Reader {
+  if (!hybridReaderCache) {
+    hybridReaderCache = new HybridX402Reader({
+      baseRpcUrl: options?.baseRpcUrl || process.env.BASE_RPC_URL,
+      solanaRpcUrl: options?.solanaRpcUrl || process.env.SOLANA_RPC_URL,
+      cdpApiKey: options?.cdpApiKey,
+      cdpApiSecret: options?.cdpApiSecret,
+    });
+  }
+  return hybridReaderCache;
+}
+
+/**
+ * Reset the hybrid reader cache
+ *
+ * Useful for testing or when configuration changes.
+ */
+export function resetHybridX402Reader(): void {
+  hybridReaderCache = null;
+}
+
+/**
  * Get combined x402 metrics for an agent across both chains
+ *
+ * @deprecated Use HybridX402Reader.getCombinedMetrics instead
  */
 export async function getCombinedX402Metrics(
   readers: X402Readers,
@@ -87,7 +149,7 @@ export async function getCombinedX402Metrics(
     solanaMetrics?.firstTransactionAt,
     baseMetrics?.lastTransactionAt,
     solanaMetrics?.lastTransactionAt,
-  ].filter((d): d is Date => d !== null);
+  ].filter((d): d is Date => d !== null && d !== undefined);
 
   const firstTx =
     dates.length > 0
@@ -117,52 +179,5 @@ export async function getCombinedX402Metrics(
   };
 }
 
-/**
- * Create or retrieve cached CDP API client
- *
- * Returns a cached instance if one exists, or creates a new one from
- * environment variables. Returns null if credentials are not configured.
- *
- * @returns CDPClient instance or null if credentials missing
- *
- * @example
- * ```typescript
- * const client = createCDPClient();
- * if (client) {
- *   const transactions = await client.getTransactions({
- *     address: '0x...',
- *     chain: 'base'
- *   });
- * }
- * ```
- */
-export function createCDPClient(): CDPClient | null {
-  if (cdpClientCache) {
-    return cdpClientCache;
-  }
-
-  const apiKey = process.env.CDP_API_KEY;
-  const apiSecret = process.env.CDP_API_SECRET;
-
-  if (!apiKey || !apiSecret) {
-    console.warn("CDP API credentials not configured (CDP_API_KEY, CDP_API_SECRET)");
-    return null;
-  }
-
-  cdpClientCache = new CDPClient({
-    apiKey,
-    apiSecret,
-    baseUrl: process.env.CDP_BASE_URL,
-  });
-
-  return cdpClientCache;
-}
-
-/**
- * Reset the CDP client cache
- *
- * Useful for testing or when credentials change.
- */
-export function resetCDPClientCache(): void {
-  cdpClientCache = null;
-}
+// Re-export createCDPClient and resetCDPClientCache from cdp-client.ts
+export { createCDPClient, resetCDPClientCache };

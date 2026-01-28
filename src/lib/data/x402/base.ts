@@ -166,6 +166,15 @@ export class BaseX402Reader implements X402DataSource {
     return [];
   }
 
+  /**
+   * Get metrics from CDP API if available
+   * Called by HybridX402Reader - base implementation returns null
+   */
+  async getMetricsFromCDP(_address: string): Promise<null> {
+    // CDP integration is handled by HybridX402Reader
+    return null;
+  }
+
   private daysSince(date: Date): number {
     const now = new Date();
     return Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
