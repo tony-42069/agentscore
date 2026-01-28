@@ -23,7 +23,7 @@ export function createMockAgentData(overrides?: Partial<AgentData>): AgentData {
     baseVolumeUsd: 50000,
     baseUniqueBuyers: 25,
     baseFirstTxAt: new Date("2024-06-01"),
-    baseLastTxAt: new Date("2025-01-28"),
+    baseLastTxAt: new Date(),
     solanaTxCount: 0,
     solanaVolumeUsd: 0,
     solanaUniqueBuyers: 0,
