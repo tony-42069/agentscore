@@ -249,7 +249,7 @@ function Hero({ scrollProgress }: { scrollProgress: any }) {
   const opacity = useTransform(scrollProgress, [0, 0.2], [1, 0]);
 
   return (
-    <section id="search" className="relative min-h-screen flex flex-col justify-center pt-32 pb-24 px-8 z-10">
+    <section id="search" className="relative min-h-screen flex flex-col justify-center pt-20 sm:pt-24 md:pt-32 pb-16 sm:pb-20 md:pb-24 px-4 sm:px-8 z-10">
       <motion.div 
         style={{ y, opacity }}
         className="max-w-5xl mx-auto text-center"
@@ -269,7 +269,7 @@ function Hero({ scrollProgress }: { scrollProgress: any }) {
           variants={staggerContainer}
           initial="hidden"
           animate="visible"
-          className="font-display text-6xl md:text-8xl lg:text-9xl font-normal tracking-tight mb-6 leading-[0.9]"
+          className="font-display text-5xl sm:text-6xl md:text-8xl lg:text-9xl font-normal tracking-tight mb-4 sm:mb-6 leading-[0.95] sm:leading-[0.9]"
         >
           <AnimatedText text="The Credit" className="block" />
           <AnimatedText text="Bureau for" className="block text-muted-foreground/60" delay={0.3} />
@@ -286,7 +286,7 @@ function Hero({ scrollProgress }: { scrollProgress: any }) {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 1.2 }}
-          className="font-body text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-16 leading-relaxed"
+          className="font-body text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-8 sm:mb-12 md:mb-16 leading-relaxed px-4 sm:px-0"
         >
           Unified credit scores for autonomous agents. 
           Cross-chain reputation data from <span className="text-foreground">Base</span> and <span className="text-foreground">Solana</span>, 
@@ -338,10 +338,10 @@ function SampleAddresses() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ delay: 2 }}
-      className="mt-8"
+      className="mt-6 sm:mt-8"
     >
-      <p className="text-xs text-muted-foreground mb-3 text-center">Try with a sample address</p>
-      <div className="flex flex-wrap items-center justify-center gap-3">
+      <p className="text-xs text-muted-foreground mb-3 text-center px-4">Try with a sample address</p>
+      <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 px-4">
         {samples.map((sample) => (
           <motion.button
             key={sample.address}
@@ -861,17 +861,8 @@ function APIPromo() {
                   className="luxe-button rounded-full flex items-center gap-2"
                 >
                   <span>View on GitHub</span>
-                  <ArrowRight className="w-4 h-4" />
-                </motion.a>
-                <a
-                  href="https://github.com/tony-42069/agentscore"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="outline-button rounded-full flex items-center gap-2"
-                >
-                  <span>GitHub</span>
                   <ArrowUpRight className="w-4 h-4" />
-                </a>
+                </motion.a>
               </div>
             </div>
             
